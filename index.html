@@ -1,0 +1,671 @@
+<title>StonesiferOS</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,400;0,500;0,700;1,400&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+  /* ===================== tokens ===================== */
+  :root{
+    --bg:#e9edf1; --surface:#ffffff; --surface2:#f2f6f9; --chrome:#e4eaf0;
+    --ink:#16202c; --muted:#5b6a79; --border:#d2dbe4;
+    --accent:#0d8f81; --accent2:#1f6feb; --accent-soft:rgba(13,143,129,.12);
+    --prompt:#b45309; --link:#1f6feb; --err:#c0392b; --ok:#0d8f81;
+    --dot-r:#ff5f56; --dot-y:#ffbd2e; --dot-g:#27c93f;
+    --glow:rgba(13,143,129,.20); --menu:rgba(255,255,255,.72);
+    --mono:'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    --sans:'IBM Plex Sans',system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+  }
+  @media (prefers-color-scheme:dark){
+    :root:not([data-theme="light"]){
+      --bg:#080b10; --surface:#111823; --surface2:#0d131c; --chrome:#141c27;
+      --ink:#e6edf3; --muted:#8b98a5; --border:#202c39;
+      --accent:#2dd4bf; --accent2:#6cb6ff; --accent-soft:rgba(45,212,191,.14);
+      --prompt:#f5b544; --link:#6cb6ff; --err:#ff6b6b; --ok:#4ade80;
+      --glow:rgba(45,212,191,.26); --menu:rgba(12,18,26,.66);
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#080b10; --surface:#111823; --surface2:#0d131c; --chrome:#141c27;
+    --ink:#e6edf3; --muted:#8b98a5; --border:#202c39;
+    --accent:#2dd4bf; --accent2:#6cb6ff; --accent-soft:rgba(45,212,191,.14);
+    --prompt:#f5b544; --link:#6cb6ff; --err:#ff6b6b; --ok:#4ade80;
+    --glow:rgba(45,212,191,.26); --menu:rgba(12,18,26,.66);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  html{scroll-behavior:smooth}
+  body{background:var(--bg); color:var(--ink); font-family:var(--sans); line-height:1.6; -webkit-font-smoothing:antialiased; overflow-x:hidden}
+  a{color:var(--link); text-decoration:none} a:hover{text-decoration:underline}
+  code,.mono{font-family:var(--mono)}
+  ::selection{background:var(--accent); color:var(--bg)}
+
+  #bgcanvas{position:fixed; inset:0; width:100%; height:100%; z-index:0; pointer-events:none; opacity:.6}
+
+  /* ===================== boot overlay ===================== */
+  #boot{position:fixed; inset:0; z-index:9000; background:#05070b; color:#7fe9d9;
+    font-family:var(--mono); font-size:13.5px; line-height:1.7; padding:max(24px,env(safe-area-inset-top)) 22px 22px;
+    overflow:hidden; transition:opacity .6s ease}
+  #boot.done{opacity:0; pointer-events:none}
+  #bootlog .l{white-space:pre-wrap}
+  #bootlog .g{color:#4ade80} #bootlog .a{color:#2dd4bf} #bootlog .m{color:#5b6a79} #bootlog .p{color:#f5b544}
+  .bootbarwrap{margin-top:14px; max-width:460px}
+  .bootbar{height:8px; border:1px solid #1f3a37; border-radius:99px; overflow:hidden; background:#0a1f1c}
+  .bootbar i{display:block; height:100%; width:0%; background:linear-gradient(90deg,#2dd4bf,#f5b544); transition:width .12s linear}
+  .bootpct{font-size:11px; color:#5b6a79; margin-top:6px}
+  .skip{position:absolute; right:20px; bottom:18px; color:#5b6a79; font-size:11px; border:1px solid #1f3a37;
+    background:transparent; border-radius:6px; padding:6px 12px; cursor:pointer}
+  .skip:hover{color:#2dd4bf; border-color:#2dd4bf}
+
+  /* ===================== scroll progress ===================== */
+  #progress{position:fixed; top:0; left:0; height:3px; width:0%; z-index:8000;
+    background:linear-gradient(90deg,var(--accent),var(--prompt)); box-shadow:0 0 10px var(--glow)}
+
+  /* ===================== menu bar ===================== */
+  .menubar{position:sticky; top:env(safe-area-inset-top,0px); z-index:200; display:flex; align-items:center;
+    justify-content:space-between; gap:12px; padding:8px 14px; backdrop-filter:blur(14px) saturate(1.4);
+    background:var(--menu); border-bottom:1px solid var(--border)}
+  .mb-left{display:flex; align-items:center; gap:14px; font-family:var(--mono); font-size:12.5px}
+  .mb-logo{font-weight:700} .mb-logo .c{color:var(--accent)}
+  .mb-menu{display:flex; gap:2px}
+  .mb-menu a{color:var(--muted); padding:3px 8px; border-radius:5px; font-size:12px}
+  .mb-menu a:hover{color:var(--ink); background:var(--surface2); text-decoration:none}
+  .mb-right{display:flex; align-items:center; gap:8px; font-family:var(--mono); font-size:12px}
+  .clock{color:var(--muted); font-variant-numeric:tabular-nums}
+  .mb-btn{color:var(--muted); background:var(--surface); border:1px solid var(--border); border-radius:6px;
+    padding:5px 9px; cursor:pointer; font-family:var(--mono); font-size:11.5px; display:inline-flex; align-items:center; gap:6px}
+  .mb-btn:hover{color:var(--accent); border-color:var(--accent)}
+  .mb-btn kbd{font-family:var(--mono); font-size:10px; color:var(--muted); border:1px solid var(--border); border-radius:4px; padding:0 4px}
+  @media (max-width:680px){ .mb-menu{display:none} .clock{display:none} }
+
+  .wrap{position:relative; z-index:1; max-width:960px; margin:0 auto; padding-inline:16px; padding-block:26px 70px}
+
+  /* ===================== window chrome ===================== */
+  .win{background:var(--surface); border:1px solid var(--border); border-radius:14px; overflow:hidden;
+    box-shadow:0 1px 0 rgba(0,0,0,.02),0 24px 50px -34px var(--glow); margin-bottom:26px}
+  .win-bar{display:flex; align-items:center; gap:10px; padding:10px 14px; background:var(--chrome); border-bottom:1px solid var(--border)}
+  .dots{display:flex; gap:7px} .dots i{width:12px; height:12px; border-radius:50%; display:block}
+  .dots i:nth-child(1){background:var(--dot-r)} .dots i:nth-child(2){background:var(--dot-y)} .dots i:nth-child(3){background:var(--dot-g)}
+  .win-title{font-family:var(--mono); font-size:12.5px; color:var(--muted); margin-left:4px}
+  .win-body{padding:22px}
+
+  /* reveal */
+  .reveal{opacity:1; transform:none}
+  body.js .reveal{opacity:0; transform:translateY(16px); transition:opacity .6s ease, transform .6s cubic-bezier(.2,.7,.2,1)}
+  body.js .reveal.in{opacity:1; transform:none}
+
+  /* ===================== hero terminal ===================== */
+  .term{font-family:var(--mono); font-size:14px; line-height:1.7; min-height:360px; cursor:text}
+  .term-out .ln{white-space:pre-wrap; word-break:break-word}
+  .term-out .accent{color:var(--accent)} .term-out .prompt{color:var(--prompt)} .term-out .muted{color:var(--muted)}
+  .term-out .err{color:var(--err)} .term-out .cmd{color:var(--ink); font-weight:500} .term-out .ok{color:var(--ok)}
+  .term-out a{color:var(--link)}
+  .inputline{display:flex; align-items:center; gap:8px; font-family:var(--mono); font-size:14px; margin-top:2px}
+  .ps1{color:var(--accent); white-space:nowrap} .ps1 .path{color:var(--prompt)}
+  .cmdin{flex:1; background:transparent; border:none; outline:none; color:var(--ink); font-family:var(--mono); font-size:14px; caret-color:var(--accent); padding:0; min-width:60px}
+  .hint{color:var(--muted); font-size:12px; margin-top:16px; font-family:var(--mono)}
+  .hint b{color:var(--accent); font-weight:500}
+  .blink{animation:blink 1.1s steps(1) infinite} @keyframes blink{50%{opacity:0}}
+  .neo{display:grid; grid-template-columns:auto 1fr; gap:0 22px; align-items:center}
+  .neo pre{margin:0; color:var(--accent); font-size:12px; line-height:1.25}
+  .neo .info div{font-size:13px} .neo .info b{color:var(--prompt); font-weight:500}
+  @media (max-width:560px){ .neo{grid-template-columns:1fr} .neo pre{font-size:9px; overflow-x:auto} }
+
+  h2.sec{font-family:var(--mono); font-size:13px; color:var(--muted); margin:0}
+  .lead{font-size:16px; max-width:64ch} .lead .hl{color:var(--accent); font-weight:600}
+  .kv{font-family:var(--mono); font-size:13px; color:var(--muted); margin-top:14px; display:flex; flex-wrap:wrap; gap:6px 18px}
+  .kv b{color:var(--ink); font-weight:500}
+
+  /* ===================== skills: radar + bars ===================== */
+  .skwrap{display:grid; grid-template-columns:320px 1fr; gap:28px; align-items:center; margin-top:14px}
+  @media (max-width:720px){ .skwrap{grid-template-columns:1fr} }
+  .radar-holder{display:flex; justify-content:center}
+  #radar{width:300px; height:300px; max-width:100%}
+  .skillcols{display:grid; grid-template-columns:1fr 1fr; gap:8px 22px}
+  @media (max-width:480px){ .skillcols{grid-template-columns:1fr} }
+  .skill{margin-bottom:8px}
+  .skill .row{display:flex; justify-content:space-between; font-family:var(--mono); font-size:12px; margin-bottom:4px}
+  .skill .row span:last-child{color:var(--muted)}
+  .bar{height:6px; border-radius:99px; background:var(--surface2); overflow:hidden; border:1px solid var(--border)}
+  .bar i{display:block; height:100%; border-radius:99px; background:linear-gradient(90deg,var(--accent),color-mix(in srgb,var(--accent) 50%,var(--prompt))); width:var(--w); transform:scaleX(0); transform-origin:left; transition:transform 1s cubic-bezier(.2,.7,.2,1)}
+
+  /* ===================== timeline ===================== */
+  .tl{position:relative; padding-left:22px}
+  .tl::before{content:""; position:absolute; left:6px; top:4px; bottom:4px; width:2px; background:var(--border)}
+  .job{position:relative; padding-bottom:22px} .job:last-child{padding-bottom:0}
+  .job::before{content:""; position:absolute; left:-19px; top:6px; width:11px; height:11px; border-radius:50%; background:var(--surface); border:2px solid var(--accent)}
+  .job.cur::before{background:var(--accent); box-shadow:0 0 0 4px var(--accent-soft); animation:pulse 2.4s ease-in-out infinite}
+  @keyframes pulse{0%,100%{box-shadow:0 0 0 4px var(--accent-soft)}50%{box-shadow:0 0 0 8px transparent}}
+  .job .jh{display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap; align-items:baseline}
+  .job .title{font-weight:600} .job .when{font-family:var(--mono); font-size:12px; color:var(--muted); white-space:nowrap}
+  .job .org{font-family:var(--mono); font-size:12.5px; color:var(--accent); margin:1px 0 6px}
+  .job p{margin:0; font-size:14.5px; color:var(--muted)}
+
+  /* ===================== projects (3D tilt) ===================== */
+  .filters{display:flex; gap:8px; flex-wrap:wrap; margin-bottom:16px}
+  .filters button{font-family:var(--mono); font-size:12px; color:var(--muted); background:var(--surface2); border:1px solid var(--border); border-radius:99px; padding:6px 13px; cursor:pointer; transition:.15s}
+  .filters button:hover{color:var(--ink)}
+  .filters button.on{color:var(--bg); background:var(--accent); border-color:var(--accent)}
+  .cards{display:grid; grid-template-columns:repeat(auto-fill,minmax(255px,1fr)); gap:16px; perspective:1200px}
+  .card{position:relative; background:var(--surface2); border:1px solid var(--border); border-radius:12px; padding:18px; display:flex; flex-direction:column;
+    transform-style:preserve-3d; transition:transform .12s ease, border-color .2s, box-shadow .2s; will-change:transform}
+  .card::before{content:""; position:absolute; inset:0; border-radius:12px; opacity:0; transition:opacity .2s; pointer-events:none;
+    background:radial-gradient(320px circle at var(--mx,50%) var(--my,0%), var(--accent-soft), transparent 60%)}
+  .card:hover{border-color:var(--accent); box-shadow:0 22px 40px -26px var(--glow)}
+  .card:hover::before{opacity:1}
+  .card.hide{display:none}
+  .card>*{transform:translateZ(20px)}
+  .card .cn{font-family:var(--mono); font-weight:700; font-size:14.5px; margin-bottom:2px}
+  .card .role{font-family:var(--mono); font-size:11.5px; color:var(--prompt); margin-bottom:10px}
+  .card p{margin:0 0 12px; font-size:13.5px; color:var(--muted); flex:1}
+  .tags{display:flex; gap:6px; flex-wrap:wrap}
+  .tag{font-family:var(--mono); font-size:10.5px; color:var(--accent); background:var(--accent-soft); border-radius:5px; padding:3px 7px}
+  .stack{font-family:var(--mono); font-size:11px; color:var(--muted); margin-top:10px}
+
+  /* ===================== talks / awards ===================== */
+  .talk{display:flex; gap:14px; align-items:baseline; padding:11px 0; border-bottom:1px dashed var(--border)}
+  .talk:last-child{border-bottom:none}
+  .talk .yr{font-family:var(--mono); font-size:12px; color:var(--prompt); min-width:74px}
+  .talk .tt{font-weight:500; font-size:14.5px} .talk .vn{font-family:var(--mono); font-size:12px; color:var(--muted)}
+  .up{font-family:var(--mono); font-size:10.5px; color:var(--bg); background:var(--accent); border-radius:5px; padding:2px 6px; margin-left:8px}
+  .awards{display:flex; flex-wrap:wrap; gap:8px; margin-top:4px}
+  .award{font-family:var(--mono); font-size:12px; color:var(--muted); background:var(--surface2); border:1px solid var(--border); border-radius:6px; padding:6px 10px}
+  .award b{color:var(--prompt); font-weight:500}
+
+  /* ===================== contact ===================== */
+  .contact-row{display:flex; gap:12px; flex-wrap:wrap; margin-top:8px}
+  .cbtn{font-family:var(--mono); font-size:13px; display:inline-flex; align-items:center; gap:8px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:10px 14px; color:var(--ink); cursor:pointer; transition:.15s}
+  .cbtn:hover{border-color:var(--accent); color:var(--accent); text-decoration:none}
+  .cbtn .k{color:var(--accent)}
+  .foot{text-align:center; font-family:var(--mono); font-size:11.5px; color:var(--muted); margin-top:34px}
+  .foot .c{color:var(--accent)}
+  @media (max-width:560px){ .win-body{padding:16px} .talk{flex-direction:column; gap:2px} .talk .yr{min-width:0} }
+
+  /* ===================== command palette ===================== */
+  #palette{position:fixed; inset:0; z-index:9500; display:none; align-items:flex-start; justify-content:center;
+    background:rgba(3,6,10,.5); backdrop-filter:blur(4px); padding-top:12vh}
+  #palette.open{display:flex}
+  .pal{width:min(560px,92vw); background:var(--surface); border:1px solid var(--border); border-radius:14px; overflow:hidden;
+    box-shadow:0 30px 80px -30px rgba(0,0,0,.6)}
+  .pal input{width:100%; border:none; outline:none; background:transparent; color:var(--ink); font-family:var(--mono); font-size:15px; padding:16px 18px; border-bottom:1px solid var(--border)}
+  .pal-list{max-height:340px; overflow-y:auto; padding:6px}
+  .pal-item{display:flex; align-items:center; gap:10px; padding:10px 12px; border-radius:8px; cursor:pointer; font-size:14px}
+  .pal-item .pi{font-family:var(--mono); font-size:12px; color:var(--accent); width:22px}
+  .pal-item .pd{color:var(--muted); font-family:var(--mono); font-size:11.5px; margin-left:auto}
+  .pal-item.sel,.pal-item:hover{background:var(--accent-soft)}
+  .pal-foot{padding:8px 14px; border-top:1px solid var(--border); font-family:var(--mono); font-size:11px; color:var(--muted); display:flex; gap:14px}
+
+  /* ===================== CRT retro mode ===================== */
+  body.crt::after{content:""; position:fixed; inset:0; z-index:7000; pointer-events:none;
+    background:repeating-linear-gradient(0deg, rgba(0,0,0,.16) 0, rgba(0,0,0,.16) 1px, transparent 2px, transparent 4px);
+    animation:flick .12s steps(2) infinite}
+  body.crt .wrap, body.crt .menubar{text-shadow:0 0 3px var(--glow)}
+  @keyframes flick{0%{opacity:.9}100%{opacity:1}}
+
+  /* ===================== matrix ===================== */
+  #matrix{position:fixed; inset:0; z-index:9600; display:none; background:#000}
+  #matrix.on{display:block}
+  #matrix .x{position:absolute; top:14px; right:16px; z-index:2; color:#4ade80; font-family:var(--mono); font-size:12px; border:1px solid #1f3a37; border-radius:6px; padding:6px 12px; cursor:pointer; background:rgba(0,0,0,.4)}
+
+  @media (prefers-reduced-motion:reduce){
+    html{scroll-behavior:auto}
+    .blink,.job.cur::before,body.crt::after{animation:none}
+    .bar i,.card,body.js .reveal{transition:none}
+    body.js .reveal{opacity:1; transform:none}
+  }
+</style>
+
+<canvas id="bgcanvas" aria-hidden="true"></canvas>
+<div id="progress"></div>
+
+<!-- ===================== BOOT ===================== -->
+<div id="boot">
+  <div id="bootlog"></div>
+  <div class="bootbarwrap" id="bootbarwrap" hidden>
+    <div class="bootbar"><i id="bootbar"></i></div>
+    <div class="bootpct" id="bootpct">0%</div>
+  </div>
+  <button class="skip" id="skipBoot">skip intro →</button>
+</div>
+
+<!-- ===================== MENU BAR ===================== -->
+<div class="menubar">
+  <div class="mb-left">
+    <span class="mb-logo"><span class="c">◆</span> StonesiferOS</span>
+    <nav class="mb-menu" aria-label="Sections">
+      <a href="#about">About</a><a href="#skills">Skills</a><a href="#projects">Projects</a>
+      <a href="#experience">Experience</a><a href="#talks">Talks</a><a href="#contact">Contact</a>
+    </nav>
+  </div>
+  <div class="mb-right">
+    <span class="clock" id="clock">--:--</span>
+    <button class="mb-btn" id="palBtn">⌘ <kbd>K</kbd></button>
+    <button class="mb-btn" id="crtBtn" title="Retro mode">▚ CRT</button>
+    <button class="mb-btn" id="themeBtn" title="Toggle theme">◐</button>
+  </div>
+</div>
+
+<div class="wrap">
+  <!-- HERO TERMINAL -->
+  <section class="win" aria-label="Interactive terminal">
+    <div class="win-bar"><div class="dots"><i></i><i></i><i></i></div><div class="win-title">brandon@stonesifer: ~ — zsh</div></div>
+    <div class="win-body">
+      <div class="term" id="term" role="group" aria-label="Terminal. Type help and press enter.">
+        <div class="term-out" id="out"></div>
+        <div class="inputline" id="inputline" hidden>
+          <span class="ps1">brandon@stonesifer <span class="path">~</span> $</span>
+          <input class="cmdin" id="cmd" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Terminal command input">
+          <span class="blink" aria-hidden="true">▋</span>
+        </div>
+        <div class="hint">try <b>help</b> · <b>projects</b> · <b>skills</b> · <b>sudo hire-brandon</b> · <b>matrix</b> &nbsp;| &nbsp;press <b>⌘K</b> to search · Tab to autocomplete</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ABOUT -->
+  <section class="win reveal" id="about">
+    <div class="win-bar"><div class="dots"><i></i><i></i><i></i></div><div class="win-title">~/about.md</div></div>
+    <div class="win-body">
+      <h2 class="sec"># whoami</h2>
+      <p class="lead" style="margin-top:10px">Research administration leader and <span class="hl">data scientist / AI developer</span>. I run the OSPREY (InfoEd) research ecosystem at UNCW across the full research lifecycle, and build the analytics, dashboards, and AI agents that turn institutional data into decisions.</p>
+      <p class="lead" style="margin-top:12px">Completing an <span class="hl">M.S. in Data Science &amp; Artificial Intelligence</span> (Dec 2026, 4.0 GPA), with a decade of U.S. Army officer leadership behind the technical work.</p>
+      <div class="kv"><span><b>📍</b> Wilmington, NC</span><span><b>🎓</b> UNCW · MS Data Science &amp; AI</span><span><b>🪖</b> Logistics Officer, NC Army National Guard</span></div>
+    </div>
+  </section>
+
+  <!-- SKILLS -->
+  <section class="win reveal" id="skills">
+    <div class="win-bar"><div class="dots"><i></i><i></i><i></i></div><div class="win-title">~/skills.cfg</div></div>
+    <div class="win-body">
+      <h2 class="sec"># cat skills.cfg</h2>
+      <div class="skwrap">
+        <div class="radar-holder"><canvas id="radar" width="600" height="600" role="img" aria-label="Radar chart of skill domains"></canvas></div>
+        <div class="skillcols" id="skillcols"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PROJECTS -->
+  <section class="win reveal" id="projects">
+    <div class="win-bar"><div class="dots"><i></i><i></i><i></i></div><div class="win-title">~/projects/</div></div>
+    <div class="win-body">
+      <h2 class="sec" style="margin-bottom:14px"># ls projects/ &nbsp;<span style="color:var(--muted)">— filter:</span></h2>
+      <div class="filters" id="filters"></div>
+      <div class="cards" id="cards"></div>
+    </div>
+  </section>
+
+  <!-- EXPERIENCE -->
+  <section class="win reveal" id="experience">
+    <div class="win-bar"><div class="dots"><i></i><i></i><i></i></div><div class="win-title">~/experience.log</div></div>
+    <div class="win-body"><h2 class="sec" style="margin-bottom:18px"># git log --oneline</h2><div class="tl" id="timeline"></div></div>
+  </section>
+
+  <!-- TALKS -->
+  <section class="win reveal" id="talks">
+    <div class="win-bar"><div class="dots"><i></i><i></i><i></i></div><div class="win-title">~/presentations.list</div></div>
+    <div class="win-body">
+      <h2 class="sec" style="margin-bottom:6px"># conference presentations</h2>
+      <div id="talklist"></div>
+      <h2 class="sec" style="margin:22px 0 8px"># honors &amp; awards</h2>
+      <div class="awards" id="awardlist"></div>
+    </div>
+  </section>
+
+  <!-- CONTACT -->
+  <section class="win reveal" id="contact">
+    <div class="win-bar"><div class="dots"><i></i><i></i><i></i></div><div class="win-title">~/contact.sh</div></div>
+    <div class="win-body">
+      <h2 class="sec"># ./contact.sh</h2>
+      <p class="lead" style="margin-top:10px">Open to conversations on research analytics, AI in research administration, and data science collaboration.</p>
+      <div class="contact-row">
+        <button class="cbtn" id="emailBtn"><span class="k">$</span> copy email</button>
+        <a class="cbtn" href="https://www.linkedin.com/in/lt-brandon-stonesifer-m-sc-53652b351/" target="_blank" rel="noopener"><span class="k">↗</span> LinkedIn</a>
+        <a class="cbtn" href="https://github.com/Stone0012" target="_blank" rel="noopener"><span class="k">↗</span> GitHub</a>
+      </div>
+    </div>
+  </section>
+
+  <div class="foot">StonesiferOS v2.0 · built with <span class="c">&lt;/&gt;</span> · press <span class="c">⌘K</span> or type <span class="c">help</span> · © <span id="yr"></span> Brandon Stonesifer</div>
+</div>
+
+<!-- ===================== COMMAND PALETTE ===================== -->
+<div id="palette" role="dialog" aria-modal="true" aria-label="Command palette">
+  <div class="pal">
+    <input id="palInput" placeholder="Type a command or section…  (Esc to close)" aria-label="Command palette input">
+    <div class="pal-list" id="palList"></div>
+    <div class="pal-foot"><span>↑↓ navigate</span><span>⏎ select</span><span>esc close</span></div>
+  </div>
+</div>
+
+<!-- ===================== MATRIX ===================== -->
+<div id="matrix"><button class="x" id="matrixX">exit ✕</button><canvas id="mcanvas"></canvas></div>
+
+<script>
+/* ===================== data ===================== */
+const EMAIL="stonesiferb@uncw.edu";
+const SKILLS=[
+  {cat:"languages", items:[["Python",95],["R",88],["SQL",92],["JavaScript / HTML",78]]},
+  {cat:"ai & machine learning", items:[["LLM agents · MCP · RAG",90],["Multi-agent (CrewAI)",84],["Neural networks · scikit-learn",85],["Computer vision · DepthAI",76]]},
+  {cat:"platforms & tools", items:[["InfoEd / OSPREY admin",97],["Power BI · Tableau",90],["Git · Bash · CLI · Lynx",85],["Azure · Foundry",74]]},
+];
+const RADAR=[["Python",95],["AI / Agents",90],["Data Viz",90],["Machine Learning",83],["InfoEd / OSPREY",97],["Git / CLI",85]];
+const PROJECTS=[
+  {n:"Grant Proposal Senior Colleague",role:"owner / developer",tags:["AI & ML","Research Admin"],stack:"React · Node · Azure · Foundry",
+   d:"An AI scholarly collaborator that critiques grant proposals on concept, methods, feasibility, and funder fit — 8 consultation modes, an evidence-linked requirement ledger, and sponsor intelligence. Now migrating to a university-managed Azure web app."},
+  {n:"BotanyBot",role:"edge ML / computer vision",tags:["AI & ML","Data Science"],stack:"Python · DepthAI · ROS 2",
+   d:"A compact vision system that spots a strawberry flower in a live feed and estimates its 3D position, pairing a lightweight 2D detector with OAK-D stereo depth on a Raspberry Pi gantry robot."},
+  {n:"OSPREY Bot",role:"grounded doc assistant",tags:["AI & ML","Research Admin"],stack:"LLM · RAG · guardrails",
+   d:"A documentation-support assistant for the OSPREY (InfoEd) platform — grounded strictly in the official docs with source citations, guardrails, and a consistent, trustworthy response structure."},
+  {n:"GE — Doc Intelligence",role:"MCP agent",tags:["AI & ML"],stack:"Python · FastMCP · Milvus · OpenAI",
+   d:"An agent over thousands of procedure documents: summarization, classification, and acronym lookup, plus new requirement-level revision diffing and a requirements-checklist extractor."},
+  {n:"Grogu the NFL Guru",role:"multi-agent system",tags:["AI & ML","Data Science"],stack:"CrewAI · Azure OpenAI · Gradio",
+   d:"A multi-agent Q&A system — a dispatcher 'Agent in Charge' routes each question to one of four agents bound to ESPN API endpoints, then summarizes the JSON into a clean answer."},
+  {n:"Compliance-Lookup Pilot",role:"REACH 2027 pilot",tags:["AI & ML","Research Admin"],stack:"grounded retrieval · eval",
+   d:"A narrowly scoped, admin-facing agent that surfaces and cites the right policy or sponsor guidance — built to support, not replace, administrators, with an honest evaluation of accuracy and failure modes."},
+];
+const JOBS=[
+  {t:"Electronic Research Administration Manager",o:"UNC Wilmington",w:"2022 — present",cur:true,
+   d:"Lead the OSPREY (InfoEd) & InfoReady ecosystem; project-managed 11 module implementations; sole responder for 450+ TeamDynamix service requests across 42 departments; build analytics in SQL, Python, R & Power BI."},
+  {t:"Logistics Officer",o:"NC Army National Guard",w:"2014 — present",cur:true,
+   d:"Liaison Officer for Rutherford County during the Hurricane Helene response — directed 150 soldiers across a dozen missions and coordinated 500+ pallets of supplies with FEMA, FBI, and county leadership in 10 days."},
+  {t:"Graduate Assistant",o:"East Carolina University",w:"2022 — 2023",cur:false,
+   d:"Research on law-enforcement/community interactions; data collection & analysis; partnered with the SBI on cold-case review."},
+  {t:"Senior Research Analyst",o:"VIGILINT",w:"2020 — 2022",cur:false,
+   d:"Trained and managed 20 analysts; delivered medical intelligence and PACE planning for high-value clients worldwide; built forecasting models and revised client SOPs."},
+];
+const TALKS=[
+  {y:"May 2027",t:"Build Your Own Agent: Role-Specific AI Assistants for Research Administration",v:"Research Analytics Summit (REACH)",up:true},
+  {y:"2026",t:"Rolling Out New Modules into an Established Environment",v:"InfoEd Global User Group Meeting"},
+  {y:"2025",t:"Data-Driven Grants Management: Leveraging InfoEd for Metrics & Insights",v:"InfoEd Global User Group Meeting"},
+  {y:"2024",t:"Project Management Essentials for Successful InfoEd Upgrades",v:"InfoEd Global User Group Meeting"},
+];
+const AWARDS=[["Gary H. Pendleton","Excellence in Leadership Award"],["ARCOM","Army Commendation Medal"],["GWOT","Global War on Terrorism Medal"],["EGWOT","Expeditionary GWOT Medal"]];
+
+const esc=s=>String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+const reduced=window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+document.body.classList.add("js");
+
+/* ===================== render ===================== */
+function renderSkills(){
+  document.getElementById("skillcols").innerHTML=SKILLS.flatMap(c=>c.items).map(([n,v])=>`
+    <div class="skill"><div class="row"><span>${esc(n)}</span><span>${v}%</span></div>
+    <div class="bar"><i style="--w:${v}%"></i></div></div>`).join("");
+}
+function renderProjects(){
+  document.getElementById("cards").innerHTML=PROJECTS.map(p=>`
+    <article class="card" data-tags="${p.tags.join("|")}">
+      <div class="cn">${esc(p.n)}</div><div class="role">${esc(p.role)}</div>
+      <p>${esc(p.d)}</p>
+      <div class="tags">${p.tags.map(t=>`<span class="tag">${esc(t)}</span>`).join("")}</div>
+      <div class="stack">▸ ${esc(p.stack)}</div></article>`).join("");
+  const cats=["All",...new Set(PROJECTS.flatMap(p=>p.tags))];
+  const f=document.getElementById("filters");
+  f.innerHTML=cats.map((t,i)=>`<button class="${i?'':'on'}" data-f="${esc(t)}">${esc(t)}</button>`).join("");
+  f.addEventListener("click",e=>{const b=e.target.closest("button"); if(!b)return;
+    f.querySelectorAll("button").forEach(x=>x.classList.toggle("on",x===b));
+    document.querySelectorAll(".card").forEach(c=>{const s=b.dataset.f==="All"||c.dataset.tags.split("|").includes(b.dataset.f); c.classList.toggle("hide",!s);});});
+  attachTilt();
+}
+function renderTimeline(){document.getElementById("timeline").innerHTML=JOBS.map(j=>`
+  <div class="job ${j.cur?'cur':''}"><div class="jh"><span class="title">${esc(j.t)}</span><span class="when">${esc(j.w)}</span></div>
+  <div class="org">${esc(j.o)}</div><p>${esc(j.d)}</p></div>`).join("");}
+function renderTalks(){
+  document.getElementById("talklist").innerHTML=TALKS.map(t=>`
+    <div class="talk"><span class="yr">${esc(t.y)}</span><span><span class="tt">${esc(t.t)}</span>${t.up?'<span class="up">upcoming</span>':''}<br><span class="vn">${esc(t.v)}</span></span></div>`).join("");
+  document.getElementById("awardlist").innerHTML=AWARDS.map(a=>`<span class="award"><b>${esc(a[0])}</b> · ${esc(a[1])}</span>`).join("");
+}
+renderSkills();renderProjects();renderTimeline();renderTalks();
+document.getElementById("yr").textContent=new Date().getFullYear();
+
+/* ===================== 3D tilt ===================== */
+function attachTilt(){
+  if(reduced||matchMedia("(pointer:coarse)").matches)return;
+  document.querySelectorAll(".card").forEach(c=>{
+    c.addEventListener("pointermove",e=>{const r=c.getBoundingClientRect();
+      const px=(e.clientX-r.left)/r.width, py=(e.clientY-r.top)/r.height;
+      c.style.transform=`rotateY(${(px-.5)*10}deg) rotateX(${(.5-py)*10}deg) translateY(-4px)`;
+      c.style.setProperty("--mx",px*100+"%"); c.style.setProperty("--my",py*100+"%");});
+    c.addEventListener("pointerleave",()=>{c.style.transform="";});
+  });
+}
+
+/* ===================== radar chart ===================== */
+const radar=document.getElementById("radar"), rx=radar.getContext("2d");
+let radarT=0, radarRAF;
+function cssvar(n){return getComputedStyle(document.documentElement).getPropertyValue(n).trim();}
+function drawRadar(prog){
+  const S=600, c=S/2, R=200, n=RADAR.length;
+  rx.clearRect(0,0,S,S);
+  const acc=cssvar("--accent"), ink=cssvar("--ink"), mut=cssvar("--muted"), bord=cssvar("--border");
+  rx.lineWidth=1.4;
+  for(let ring=1;ring<=4;ring++){ rx.beginPath();
+    for(let i=0;i<=n;i++){const a=-Math.PI/2+i*2*Math.PI/n, rr=R*ring/4;
+      const x=c+rr*Math.cos(a), y=c+rr*Math.sin(a); i?rx.lineTo(x,y):rx.moveTo(x,y);}
+    rx.strokeStyle=bord; rx.globalAlpha=.7; rx.stroke(); rx.globalAlpha=1; }
+  for(let i=0;i<n;i++){const a=-Math.PI/2+i*2*Math.PI/n;
+    rx.beginPath(); rx.moveTo(c,c); rx.lineTo(c+R*Math.cos(a),c+R*Math.sin(a)); rx.strokeStyle=bord; rx.globalAlpha=.6; rx.stroke(); rx.globalAlpha=1;}
+  rx.beginPath();
+  for(let i=0;i<=n;i++){const idx=i%n, a=-Math.PI/2+idx*2*Math.PI/n, rr=R*(RADAR[idx][1]/100)*prog;
+    const x=c+rr*Math.cos(a), y=c+rr*Math.sin(a); i?rx.lineTo(x,y):rx.moveTo(x,y);}
+  rx.closePath();
+  const grad=rx.createRadialGradient(c,c,10,c,c,R);
+  grad.addColorStop(0,acc+"cc"); grad.addColorStop(1,acc+"22");
+  rx.fillStyle=grad; rx.globalAlpha=.55; rx.fill(); rx.globalAlpha=1;
+  rx.strokeStyle=acc; rx.lineWidth=2.4; rx.stroke();
+  for(let i=0;i<n;i++){const a=-Math.PI/2+i*2*Math.PI/n, rr=R*(RADAR[i][1]/100)*prog;
+    rx.beginPath(); rx.arc(c+rr*Math.cos(a),c+rr*Math.sin(a),4,0,7); rx.fillStyle=acc; rx.fill();}
+  rx.fillStyle=mut; rx.font="600 20px "+cssvar("--mono").split(",")[0].replace(/'/g,"")+", monospace"; rx.textAlign="center"; rx.textBaseline="middle";
+  for(let i=0;i<n;i++){const a=-Math.PI/2+i*2*Math.PI/n, lr=R+34;
+    let x=c+lr*Math.cos(a), y=c+lr*Math.sin(a);
+    rx.fillStyle=ink; rx.fillText(RADAR[i][0], x, y);}
+}
+function animateRadar(){ if(reduced){drawRadar(1);return;}
+  radarT=0; cancelAnimationFrame(radarRAF);
+  (function step(){ radarT=Math.min(1,radarT+.045); drawRadar(1-Math.pow(1-radarT,3)); if(radarT<1) radarRAF=requestAnimationFrame(step); })();
+}
+
+/* ===================== reveal + bars + radar on scroll ===================== */
+let radarShown=false;
+const io=new IntersectionObserver((es)=>{es.forEach(en=>{ if(en.isIntersecting){ en.target.classList.add("in");
+  if(en.target.id==="skills"){ en.target.querySelectorAll(".bar i").forEach(b=>b.style.transform="scaleX(1)"); if(!radarShown){radarShown=true;animateRadar();} }
+  io.unobserve(en.target);} });},{threshold:.18});
+document.querySelectorAll(".reveal").forEach(el=>io.observe(el));
+
+/* ===================== background particles + parallax ===================== */
+const cv=document.getElementById("bgcanvas"), cx=cv.getContext("2d");
+let W,H,dots,braf,mx=0,my=0;
+function sz(){W=cv.width=innerWidth*devicePixelRatio;H=cv.height=innerHeight*devicePixelRatio;cv.style.width=innerWidth+"px";cv.style.height=innerHeight+"px";}
+function initDots(){const n=Math.min(80,Math.floor(innerWidth/20));
+  dots=Array.from({length:n},()=>({x:Math.random()*W,y:Math.random()*H,vx:(Math.random()-.5)*.12*devicePixelRatio,vy:(Math.random()-.5)*.12*devicePixelRatio,z:Math.random()*.6+.4}));}
+function drawB(stat){const col=cssvar("--accent"); cx.clearRect(0,0,W,H);
+  const R=2.2*devicePixelRatio, LINK=120*devicePixelRatio;
+  for(const d of dots){ if(!stat&&!reduced){d.x+=d.vx+mx*d.z*.4;d.y+=d.vy+my*d.z*.4; if(d.x<0)d.x+=W; if(d.x>W)d.x-=W; if(d.y<0)d.y+=H; if(d.y>H)d.y-=H;}
+    cx.beginPath();cx.arc(d.x,d.y,R*d.z,0,7);cx.fillStyle=col;cx.globalAlpha=.55*d.z;cx.fill();}
+  for(let i=0;i<dots.length;i++)for(let j=i+1;j<dots.length;j++){const a=dots[i],b=dots[j],dist=Math.hypot(a.x-b.x,a.y-b.y);
+    if(dist<LINK){cx.beginPath();cx.moveTo(a.x,a.y);cx.lineTo(b.x,b.y);cx.strokeStyle=col;cx.globalAlpha=(1-dist/LINK)*.16;cx.lineWidth=1;cx.stroke();}}
+  cx.globalAlpha=1;}
+function loopB(){drawB(false);braf=requestAnimationFrame(loopB);}
+function startB(){sz();initDots();cancelAnimationFrame(braf); reduced?drawB(true):loopB();}
+addEventListener("resize",()=>{sz();initDots(); drawRadar(radarShown?1:1);});
+addEventListener("pointermove",e=>{mx=(e.clientX/innerWidth-.5)*.6; my=(e.clientY/innerHeight-.5)*.6;});
+startB();
+
+/* ===================== theme ===================== */
+const root=document.documentElement;
+function curTheme(){const s=root.getAttribute("data-theme"); return s||(matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light");}
+try{const s=localStorage.getItem("bs_theme"); if(s)root.setAttribute("data-theme",s);}catch(e){}
+document.getElementById("themeBtn").addEventListener("click",()=>{const n=curTheme()==="dark"?"light":"dark"; root.setAttribute("data-theme",n);
+  try{localStorage.setItem("bs_theme",n);}catch(e){} drawB(reduced); drawRadar(radarShown?1:1);});
+
+/* ===================== clock ===================== */
+function tick(){const d=new Date(); document.getElementById("clock").textContent=d.toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"});}
+tick(); setInterval(tick,10000);
+
+/* ===================== terminal ===================== */
+const out=document.getElementById("out"), line=document.getElementById("inputline"), cmd=document.getElementById("cmd"), term=document.getElementById("term");
+const history=[]; let hi=-1;
+function print(html,cls){const d=document.createElement("div");d.className="ln"+(cls?" "+cls:"");d.innerHTML=html;out.appendChild(d);return d;}
+function echoCmd(c){print(`<span class="prompt">brandon@stonesifer ~ $</span> <span class="cmd">${esc(c)}</span>`);}
+function jump(id){const el=document.getElementById(id); if(el)setTimeout(()=>el.scrollIntoView({behavior:reduced?"auto":"smooth",block:"start"}),240);}
+const NEO=`   ██████╗ ███████╗
+   ██╔══██╗██╔════╝
+   ██████╔╝███████╗
+   ██╔══██╗╚════██║
+   ██████╔╝███████║
+   ╚═════╝ ╚══════╝`;
+function neofetch(){return `<div class="neo"><pre>${NEO}</pre><div class="info">
+<div><b>user</b>@ brandon-stonesifer</div>
+<div><b>role</b>  ERA Manager · Data Scientist · AI Developer</div>
+<div><b>org</b>   UNC Wilmington</div>
+<div><b>edu</b>   MS Data Science &amp; AI (2026) · 4.0 GPA</div>
+<div><b>svc</b>   Logistics Officer, NC Army National Guard</div>
+<div><b>lang</b>  Python · R · SQL · JavaScript</div>
+<div><b>ai</b>    LLM agents · MCP · RAG · CrewAI · CV</div>
+<div><b>talks</b> 3 delivered · 1 upcoming (REACH 2027)</div>
+<div><b>uptime</b> 10+ yrs leading teams</div>
+</div></div>`;}
+const COMMANDS={
+  help(){return `Available commands:
+  <span class="accent">about  whoami  skills  projects  experience  education</span>
+  <span class="accent">talks  contact  neofetch  ls  theme  matrix  crt  clear</span>
+<span class="muted">↑/↓ history · Tab autocomplete · ⌘K command palette</span>`;},
+  neofetch(){return neofetch();},
+  about(){jump("about");return `Research administration leader + data scientist / AI developer at UNC Wilmington.\n<span class="muted">→ ~/about.md</span>`;},
+  whoami(){return `brandon — ERA Manager @ UNCW · MS Data Science &amp; AI (2026) · Army logistics officer`;},
+  skills(){jump("skills");let s="";SKILLS.forEach(c=>{s+=`<span class="accent">[${c.cat}]</span>\n`;c.items.forEach(([n,v])=>{const f=Math.round(v/5);s+=`  ${n.padEnd(28," ")} <span class="prompt">${"█".repeat(f)}${"░".repeat(20-f)}</span> ${v}%\n`;});});return s+'<span class="muted">→ ~/skills.cfg</span>';},
+  projects(){jump("projects");return "Loaded "+PROJECTS.length+" projects:\n"+PROJECTS.map(p=>`  <span class="accent">▸ ${esc(p.n)}</span> <span class="muted">— ${esc(p.role)}</span>`).join("\n")+'\n<span class="muted">→ ~/projects/</span>';},
+  experience(){jump("experience");return JOBS.map(j=>`<span class="prompt">${j.w.padEnd(16," ")}</span> <span class="accent">${esc(j.t)}</span>\n                 <span class="muted">${esc(j.o)}</span>`).join("\n")+'\n<span class="muted">→ ~/experience.log</span>';},
+  education(){return `<span class="accent">M.S. Data Science &amp; Artificial Intelligence</span> — UNC Wilmington <span class="muted">(Dec 2026, 4.0 GPA)</span>
+<span class="accent">M.S. Criminal Justice</span> — East Carolina University <span class="muted">(2022)</span>
+<span class="accent">B.A. Psychology</span> — Appalachian State University <span class="muted">(2018)</span>`;},
+  talks(){jump("talks");return TALKS.map(t=>`<span class="prompt">${t.y.padEnd(9," ")}</span> ${esc(t.t)} <span class="muted">${t.up?"[upcoming]":""}</span>\n          <span class="muted">${esc(t.v)}</span>`).join("\n")+'\n<span class="muted">→ ~/presentations.list</span>';},
+  contact(){jump("contact");return `email    <a href="mailto:${EMAIL}">${EMAIL}</a>
+linkedin <a href="https://www.linkedin.com/in/lt-brandon-stonesifer-m-sc-53652b351/" target="_blank" rel="noopener">/in/lt-brandon-stonesifer-m-sc</a>
+github   <a href="https://github.com/Stone0012" target="_blank" rel="noopener">github.com/Stone0012</a>
+location Wilmington, NC`;},
+  ls(){return '<span class="accent">about.md  skills.cfg  projects/  experience.log  presentations.list  contact.sh</span>';},
+  theme(){document.getElementById("themeBtn").click();return '<span class="ok">✔ theme toggled</span>';},
+  crt(){document.getElementById("crtBtn").click();return '<span class="ok">✔ retro mode toggled</span>';},
+  matrix(){startMatrix();return '<span class="ok">entering the matrix… (press exit or Esc)</span>';},
+  clear(){out.innerHTML="";return null;},
+  "sudo hire-brandon"(){return `<span class="ok">[sudo] authenticating... ✔ access granted</span>
+<span class="accent">Excellent choice.</span> Routing to the hiring pipeline →
+  ✔ research administration expertise
+  ✔ ships real AI / ML systems
+  ✔ leads under pressure (see: Hurricane Helene)
+Run <span class="accent">contact</span> to start the conversation.`;},
+  coffee(){return "☕ brewing... <span class='muted'>ERROR 418: I'm a teapot. But the code still compiles.</span>";},
+};
+const ALIASES={"?":"help",man:"help",info:"about",work:"experience",exp:"experience",proj:"projects",edu:"education",email:"contact",cls:"clear",resume:"contact",hire:"sudo hire-brandon",fetch:"neofetch"};
+const COMPLETE=[...Object.keys(COMMANDS),...Object.keys(ALIASES)];
+function run(raw){const c=raw.trim(); if(!c)return; history.unshift(c); hi=-1; echoCmd(c);
+  const key=ALIASES[c.toLowerCase()]||c.toLowerCase(); const fn=COMMANDS[key];
+  if(fn){const r=fn(); if(r!==null)print(r);} else print(`command not found: <span class="cmd">${esc(c)}</span> — type <span class="accent">help</span>`,"err");
+  out.scrollTop=out.scrollHeight;}
+cmd.addEventListener("keydown",e=>{
+  if(e.key==="Enter"){run(cmd.value);cmd.value="";}
+  else if(e.key==="Tab"){e.preventDefault();const v=cmd.value.trim().toLowerCase(); if(v){const m=COMPLETE.find(x=>x.startsWith(v)); if(m)cmd.value=m;}}
+  else if(e.key==="ArrowUp"){if(history.length){hi=Math.min(hi+1,history.length-1);cmd.value=history[hi]||"";e.preventDefault();}}
+  else if(e.key==="ArrowDown"){if(hi>0){hi--;cmd.value=history[hi]||"";}else{hi=-1;cmd.value="";}e.preventDefault();}});
+term.addEventListener("click",()=>{if(!line.hidden)cmd.focus();});
+
+/* ===================== boot ===================== */
+const bootlog=document.getElementById("bootlog"), bootEl=document.getElementById("boot");
+const BOOT=[
+  '<span class="m">StonesiferOS 2.0.26 (kernel 6.18-research)</span>',
+  '<span class="g">[ OK ]</span> POST: cpu, memory, curiosity ....... <span class="g">passed</span>',
+  '<span class="g">[ OK ]</span> mounting <span class="a">/research</span> (InfoEd/OSPREY) ....... <span class="g">ok</span>',
+  '<span class="g">[ OK ]</span> loading <span class="a">ai-modules</span> [ mcp · rag · crewai · vision ]',
+  '<span class="g">[ OK ]</span> starting <span class="a">analytics.d</span> [ python · r · sql · powerbi ]',
+  '<span class="g">[ OK ]</span> verifying credentials [ MS Data Science &amp; AI · 4.0 GPA ]',
+  '<span class="p">::</span> initializing user profile <span class="a">brandon@stonesifer</span> ...',
+];
+function typeBoot(i){
+  if(i>=BOOT.length){progressBoot();return;}
+  const d=document.createElement("div");d.className="l";d.innerHTML=BOOT[i];bootlog.appendChild(d);
+  setTimeout(()=>typeBoot(i+1), reduced?0:180);
+}
+function progressBoot(){
+  const wrap=document.getElementById("bootbarwrap"),bar=document.getElementById("bootbar"),pct=document.getElementById("bootpct");
+  wrap.hidden=false; let p=0;
+  const iv=setInterval(()=>{p+=Math.random()*16+7; if(p>=100){p=100;clearInterval(iv);setTimeout(endBoot,420);} bar.style.width=p+"%"; pct.textContent=Math.floor(p)+"%";}, reduced?10:90);
+}
+let booted=false;
+function endBoot(){ if(booted)return; booted=true;
+  bootEl.classList.add("done"); setTimeout(()=>bootEl.remove(),650);
+  line.hidden=false; print(neofetch()); print('<span class="muted">type <span class="accent">help</span> to explore, or press ⌘K</span>');
+  try{cmd.focus({preventScroll:true});}catch(e){}
+  // reveal anything already in view
+  document.querySelectorAll(".reveal").forEach(el=>{const r=el.getBoundingClientRect(); if(r.top<innerHeight){el.classList.add("in");}});
+}
+document.getElementById("skipBoot").addEventListener("click",endBoot);
+if(reduced){ BOOT.forEach(b=>{const d=document.createElement("div");d.className="l";d.innerHTML=b;bootlog.appendChild(d);}); endBoot(); }
+else typeBoot(0);
+
+/* ===================== command palette ===================== */
+const pal=document.getElementById("palette"), palInput=document.getElementById("palInput"), palList=document.getElementById("palList");
+const PAL_ITEMS=[
+  {k:"→",l:"Go to About",act:()=>jump("about")},{k:"→",l:"Go to Skills",act:()=>jump("skills")},
+  {k:"→",l:"Go to Projects",act:()=>jump("projects")},{k:"→",l:"Go to Experience",act:()=>jump("experience")},
+  {k:"→",l:"Go to Talks",act:()=>jump("talks")},{k:"→",l:"Go to Contact",act:()=>jump("contact")},
+  {k:"$",l:"Run: neofetch",d:"cmd",act:()=>{scrollTo({top:0,behavior:"smooth"});run("neofetch");}},
+  {k:"$",l:"Run: skills",d:"cmd",act:()=>run("skills")},
+  {k:"$",l:"Run: sudo hire-brandon",d:"cmd",act:()=>{scrollTo({top:0,behavior:"smooth"});run("sudo hire-brandon");}},
+  {k:"◐",l:"Toggle theme",act:()=>document.getElementById("themeBtn").click()},
+  {k:"▚",l:"Toggle CRT / retro mode",act:()=>document.getElementById("crtBtn").click()},
+  {k:"◉",l:"Enter the Matrix",act:()=>startMatrix()},
+  {k:"✉",l:"Copy email",act:()=>document.getElementById("emailBtn").click()},
+  {k:"↗",l:"Open LinkedIn",act:()=>window.open("https://www.linkedin.com/in/lt-brandon-stonesifer-m-sc-53652b351/","_blank")},
+  {k:"↗",l:"Open GitHub",act:()=>window.open("https://github.com/Stone0012","_blank")},
+];
+let palSel=0, palFiltered=PAL_ITEMS;
+function renderPal(){palList.innerHTML=palFiltered.map((it,i)=>`<div class="pal-item ${i===palSel?'sel':''}" data-i="${i}"><span class="pi">${it.k}</span><span>${esc(it.l)}</span>${it.d?`<span class="pd">${it.d}</span>`:''}</div>`).join("")||'<div class="pal-item"><span class="pd">no matches</span></div>';}
+function openPal(){pal.classList.add("open");palInput.value="";palFiltered=PAL_ITEMS;palSel=0;renderPal();setTimeout(()=>palInput.focus(),30);}
+function closePal(){pal.classList.remove("open");}
+function doPal(i){const it=palFiltered[i]; if(it){closePal(); it.act();}}
+document.getElementById("palBtn").addEventListener("click",openPal);
+palInput.addEventListener("input",()=>{const q=palInput.value.toLowerCase(); palFiltered=PAL_ITEMS.filter(it=>it.l.toLowerCase().includes(q)); palSel=0; renderPal();});
+palInput.addEventListener("keydown",e=>{
+  if(e.key==="ArrowDown"){palSel=Math.min(palSel+1,palFiltered.length-1);renderPal();e.preventDefault();}
+  else if(e.key==="ArrowUp"){palSel=Math.max(palSel-1,0);renderPal();e.preventDefault();}
+  else if(e.key==="Enter"){doPal(palSel);} else if(e.key==="Escape"){closePal();}});
+palList.addEventListener("click",e=>{const it=e.target.closest(".pal-item"); if(it&&it.dataset.i!=null)doPal(+it.dataset.i);});
+pal.addEventListener("click",e=>{if(e.target===pal)closePal();});
+addEventListener("keydown",e=>{
+  if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==="k"){e.preventDefault(); pal.classList.contains("open")?closePal():openPal();}
+  else if(e.key==="Escape"){closePal();}});
+
+/* ===================== CRT ===================== */
+document.getElementById("crtBtn").addEventListener("click",()=>document.body.classList.toggle("crt"));
+
+/* ===================== matrix ===================== */
+const mEl=document.getElementById("matrix"), mc=document.getElementById("mcanvas"), mcx=mc.getContext("2d");
+let mRAF, mCols;
+function startMatrix(){mEl.classList.add("on"); mc.width=innerWidth; mc.height=innerHeight;
+  const fs=16; mCols=Array(Math.floor(mc.width/fs)).fill(0);
+  cancelAnimationFrame(mRAF);
+  (function draw(){ mcx.fillStyle="rgba(0,0,0,.08)"; mcx.fillRect(0,0,mc.width,mc.height);
+    mcx.fillStyle=cssvar("--accent")||"#2dd4bf"; mcx.font=fs+"px monospace";
+    mCols.forEach((y,i)=>{const ch=String.fromCharCode(0x30A0+Math.random()*96); mcx.fillText(ch,i*fs,y*fs);
+      mCols[i]=(y*fs>mc.height&&Math.random()>.975)?0:y+1;});
+    if(mEl.classList.contains("on"))mRAF=requestAnimationFrame(draw); })();}
+function stopMatrix(){mEl.classList.remove("on");cancelAnimationFrame(mRAF);}
+document.getElementById("matrixX").addEventListener("click",stopMatrix);
+addEventListener("keydown",e=>{if(e.key==="Escape")stopMatrix();});
+
+/* ===================== scroll progress ===================== */
+const prog=document.getElementById("progress");
+addEventListener("scroll",()=>{const h=document.documentElement.scrollHeight-innerHeight; prog.style.width=(h>0?scrollY/h*100:0)+"%";},{passive:true});
+
+/* ===================== konami ===================== */
+let konami=[], SEQ="38,38,40,40,37,39,37,39,66,65";
+addEventListener("keydown",e=>{konami.push(e.keyCode);konami=konami.slice(-10); if(konami.join(",")===SEQ){startMatrix();}});
+
+/* ===================== copy email ===================== */
+document.getElementById("emailBtn").addEventListener("click",async e=>{const b=e.currentTarget;
+  try{await navigator.clipboard.writeText(EMAIL);b.innerHTML='<span class="k">✔</span> copied!';}
+  catch(err){b.innerHTML='<span class="k">$</span> '+EMAIL;}
+  setTimeout(()=>{b.innerHTML='<span class="k">$</span> copy email';},1800);});
+
+/* draw radar once so it's not blank before scroll (light state) */
+drawRadar(1); radarShown=false;
+</script>
