@@ -1,9 +1,9 @@
 <title>StonesiferOS</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,400;0,500;0,700;1,400&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,400;0,500;0,700;1,400&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
 <style>
-  /* ===================== tokens ===================== */
+  /* ===================== tokens (light) ===================== */
   :root{
     --bg:#e9edf1; --surface:#ffffff; --surface2:#f2f6f9; --chrome:#e4eaf0;
     --ink:#16202c; --muted:#5b6a79; --border:#d2dbe4;
@@ -11,24 +11,24 @@
     --prompt:#b45309; --link:#1f6feb; --err:#c0392b; --ok:#0d8f81;
     --dot-r:#ff5f56; --dot-y:#ffbd2e; --dot-g:#27c93f;
     --glow:rgba(13,143,129,.20); --menu:rgba(255,255,255,.72);
+    --tipbg:#16202c; --tipink:#f2f6f9;
     --mono:'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
     --sans:'IBM Plex Sans',system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
   }
-  @media (prefers-color-scheme:dark){
-    :root:not([data-theme="light"]){
-      --bg:#080b10; --surface:#111823; --surface2:#0d131c; --chrome:#141c27;
-      --ink:#e6edf3; --muted:#8b98a5; --border:#202c39;
-      --accent:#2dd4bf; --accent2:#6cb6ff; --accent-soft:rgba(45,212,191,.14);
-      --prompt:#f5b544; --link:#6cb6ff; --err:#ff6b6b; --ok:#4ade80;
-      --glow:rgba(45,212,191,.26); --menu:rgba(12,18,26,.66);
-    }
-  }
+  /* dark tokens (default via data-theme="dark", also honored for system-dark) */
+  @media (prefers-color-scheme:dark){ :root:not([data-theme="light"]){
+    --bg:#080b10; --surface:#111823; --surface2:#0d131c; --chrome:#141c27;
+    --ink:#e6edf3; --muted:#8b98a5; --border:#202c39;
+    --accent:#2dd4bf; --accent2:#6cb6ff; --accent-soft:rgba(45,212,191,.14);
+    --prompt:#f5b544; --link:#6cb6ff; --err:#ff6b6b; --ok:#4ade80;
+    --glow:rgba(45,212,191,.26); --menu:rgba(12,18,26,.66); --tipbg:#1b2634; --tipink:#e6edf3;
+  }}
   :root[data-theme="dark"]{
     --bg:#080b10; --surface:#111823; --surface2:#0d131c; --chrome:#141c27;
     --ink:#e6edf3; --muted:#8b98a5; --border:#202c39;
     --accent:#2dd4bf; --accent2:#6cb6ff; --accent-soft:rgba(45,212,191,.14);
     --prompt:#f5b544; --link:#6cb6ff; --err:#ff6b6b; --ok:#4ade80;
-    --glow:rgba(45,212,191,.26); --menu:rgba(12,18,26,.66);
+    --glow:rgba(45,212,191,.26); --menu:rgba(12,18,26,.66); --tipbg:#1b2634; --tipink:#e6edf3;
   }
   *{box-sizing:border-box}
   html,body{margin:0}
@@ -37,13 +37,13 @@
   a{color:var(--link); text-decoration:none} a:hover{text-decoration:underline}
   code,.mono{font-family:var(--mono)}
   ::selection{background:var(--accent); color:var(--bg)}
+  button{font-family:inherit}
 
-  #bgcanvas{position:fixed; inset:0; width:100%; height:100%; z-index:0; pointer-events:none; opacity:.6}
+  #bgcanvas{position:fixed; inset:0; width:100%; height:100%; z-index:0; pointer-events:none; opacity:.55}
 
-  /* ===================== boot overlay ===================== */
+  /* ===================== boot ===================== */
   #boot{position:fixed; inset:0; z-index:9000; background:#05070b; color:#7fe9d9;
-    font-family:var(--mono); font-size:13.5px; line-height:1.7; padding:max(24px,env(safe-area-inset-top)) 22px 22px;
-    overflow:hidden; transition:opacity .6s ease}
+    font-family:var(--mono); font-size:13.5px; line-height:1.7; padding:max(24px,env(safe-area-inset-top)) 22px 22px; overflow:hidden; transition:opacity .6s ease}
   #boot.done{opacity:0; pointer-events:none}
   #bootlog .l{white-space:pre-wrap}
   #bootlog .g{color:#4ade80} #bootlog .a{color:#2dd4bf} #bootlog .m{color:#5b6a79} #bootlog .p{color:#f5b544}
@@ -51,18 +51,13 @@
   .bootbar{height:8px; border:1px solid #1f3a37; border-radius:99px; overflow:hidden; background:#0a1f1c}
   .bootbar i{display:block; height:100%; width:0%; background:linear-gradient(90deg,#2dd4bf,#f5b544); transition:width .12s linear}
   .bootpct{font-size:11px; color:#5b6a79; margin-top:6px}
-  .skip{position:absolute; right:20px; bottom:18px; color:#5b6a79; font-size:11px; border:1px solid #1f3a37;
-    background:transparent; border-radius:6px; padding:6px 12px; cursor:pointer}
+  .skip{position:absolute; right:20px; bottom:18px; color:#5b6a79; font-size:11px; border:1px solid #1f3a37; background:transparent; border-radius:6px; padding:6px 12px; cursor:pointer}
   .skip:hover{color:#2dd4bf; border-color:#2dd4bf}
 
-  /* ===================== scroll progress ===================== */
-  #progress{position:fixed; top:0; left:0; height:3px; width:0%; z-index:8000;
-    background:linear-gradient(90deg,var(--accent),var(--prompt)); box-shadow:0 0 10px var(--glow)}
+  #progress{position:fixed; top:0; left:0; height:3px; width:0%; z-index:8000; background:linear-gradient(90deg,var(--accent),var(--prompt)); box-shadow:0 0 10px var(--glow)}
 
   /* ===================== menu bar ===================== */
-  .menubar{position:sticky; top:env(safe-area-inset-top,0px); z-index:200; display:flex; align-items:center;
-    justify-content:space-between; gap:12px; padding:8px 14px; backdrop-filter:blur(14px) saturate(1.4);
-    background:var(--menu); border-bottom:1px solid var(--border)}
+  .menubar{position:sticky; top:env(safe-area-inset-top,0px); z-index:200; display:flex; align-items:center; justify-content:space-between; gap:12px; padding:8px 14px; backdrop-filter:blur(14px) saturate(1.4); background:var(--menu); border-bottom:1px solid var(--border)}
   .mb-left{display:flex; align-items:center; gap:14px; font-family:var(--mono); font-size:12.5px}
   .mb-logo{font-weight:700} .mb-logo .c{color:var(--accent)}
   .mb-menu{display:flex; gap:2px}
@@ -70,8 +65,7 @@
   .mb-menu a:hover{color:var(--ink); background:var(--surface2); text-decoration:none}
   .mb-right{display:flex; align-items:center; gap:8px; font-family:var(--mono); font-size:12px}
   .clock{color:var(--muted); font-variant-numeric:tabular-nums}
-  .mb-btn{color:var(--muted); background:var(--surface); border:1px solid var(--border); border-radius:6px;
-    padding:5px 9px; cursor:pointer; font-family:var(--mono); font-size:11.5px; display:inline-flex; align-items:center; gap:6px}
+  .mb-btn{color:var(--muted); background:var(--surface); border:1px solid var(--border); border-radius:6px; padding:5px 9px; cursor:pointer; font-family:var(--mono); font-size:11.5px; display:inline-flex; align-items:center; gap:6px}
   .mb-btn:hover{color:var(--accent); border-color:var(--accent)}
   .mb-btn kbd{font-family:var(--mono); font-size:10px; color:var(--muted); border:1px solid var(--border); border-radius:4px; padding:0 4px}
   @media (max-width:680px){ .mb-menu{display:none} .clock{display:none} }
@@ -79,29 +73,39 @@
   .wrap{position:relative; z-index:1; max-width:960px; margin:0 auto; padding-inline:16px; padding-block:26px 70px}
 
   /* ===================== window chrome ===================== */
-  .win{background:var(--surface); border:1px solid var(--border); border-radius:14px; overflow:hidden;
-    box-shadow:0 1px 0 rgba(0,0,0,.02),0 24px 50px -34px var(--glow); margin-bottom:26px}
+  .win{background:var(--surface); border:1px solid var(--border); border-radius:14px; overflow:hidden; box-shadow:0 1px 0 rgba(0,0,0,.02),0 24px 50px -34px var(--glow); margin-bottom:26px}
   .win-bar{display:flex; align-items:center; gap:10px; padding:10px 14px; background:var(--chrome); border-bottom:1px solid var(--border)}
-  .dots{display:flex; gap:7px} .dots i{width:12px; height:12px; border-radius:50%; display:block}
+  .dots{display:flex; gap:7px} .dots i{width:12px; height:12px; border-radius:50%; display:block; cursor:help}
   .dots i:nth-child(1){background:var(--dot-r)} .dots i:nth-child(2){background:var(--dot-y)} .dots i:nth-child(3){background:var(--dot-g)}
   .win-title{font-family:var(--mono); font-size:12.5px; color:var(--muted); margin-left:4px}
   .win-body{padding:22px}
 
-  /* reveal */
+  /* section headers */
+  .hdr{margin-bottom:16px}
+  .hdr h2{font-family:var(--sans); font-weight:700; font-size:20px; margin:0; letter-spacing:-.01em; text-wrap:balance}
+  .hdr .sub{font-size:13.5px; color:var(--muted); margin-top:3px}
+  .hdr .sub .cue{color:var(--accent)}
+
   .reveal{opacity:1; transform:none}
   body.js .reveal{opacity:0; transform:translateY(16px); transition:opacity .6s ease, transform .6s cubic-bezier(.2,.7,.2,1)}
   body.js .reveal.in{opacity:1; transform:none}
 
   /* ===================== hero terminal ===================== */
-  .term{font-family:var(--mono); font-size:14px; line-height:1.7; min-height:360px; cursor:text}
+  .term{font-family:var(--mono); font-size:14px; line-height:1.7; min-height:320px; cursor:text}
   .term-out .ln{white-space:pre-wrap; word-break:break-word}
   .term-out .accent{color:var(--accent)} .term-out .prompt{color:var(--prompt)} .term-out .muted{color:var(--muted)}
   .term-out .err{color:var(--err)} .term-out .cmd{color:var(--ink); font-weight:500} .term-out .ok{color:var(--ok)}
   .term-out a{color:var(--link)}
-  .inputline{display:flex; align-items:center; gap:8px; font-family:var(--mono); font-size:14px; margin-top:2px}
+  .welcome{font-family:var(--sans); font-size:15px; color:var(--ink); background:var(--surface2); border:1px solid var(--border); border-left:3px solid var(--accent); border-radius:8px; padding:12px 14px; margin-bottom:12px}
+  .welcome b{color:var(--accent)}
+  .chips{display:flex; gap:8px; flex-wrap:wrap; margin:12px 0 4px}
+  .chip{font-family:var(--mono); font-size:12.5px; color:var(--ink); background:var(--surface2); border:1px solid var(--border); border-radius:99px; padding:6px 13px; cursor:pointer; transition:.14s}
+  .chip:hover{border-color:var(--accent); color:var(--accent); transform:translateY(-1px)}
+  .chip.fun{border-color:var(--prompt); color:var(--prompt)}
+  .inputline{display:flex; align-items:center; gap:8px; font-family:var(--mono); font-size:14px; margin-top:8px}
   .ps1{color:var(--accent); white-space:nowrap} .ps1 .path{color:var(--prompt)}
   .cmdin{flex:1; background:transparent; border:none; outline:none; color:var(--ink); font-family:var(--mono); font-size:14px; caret-color:var(--accent); padding:0; min-width:60px}
-  .hint{color:var(--muted); font-size:12px; margin-top:16px; font-family:var(--mono)}
+  .hint{color:var(--muted); font-size:12px; margin-top:12px; font-family:var(--mono)}
   .hint b{color:var(--accent); font-weight:500}
   .blink{animation:blink 1.1s steps(1) infinite} @keyframes blink{50%{opacity:0}}
   .neo{display:grid; grid-template-columns:auto 1fr; gap:0 22px; align-items:center}
@@ -109,22 +113,32 @@
   .neo .info div{font-size:13px} .neo .info b{color:var(--prompt); font-weight:500}
   @media (max-width:560px){ .neo{grid-template-columns:1fr} .neo pre{font-size:9px; overflow-x:auto} }
 
-  h2.sec{font-family:var(--mono); font-size:13px; color:var(--muted); margin:0}
   .lead{font-size:16px; max-width:64ch} .lead .hl{color:var(--accent); font-weight:600}
   .kv{font-family:var(--mono); font-size:13px; color:var(--muted); margin-top:14px; display:flex; flex-wrap:wrap; gap:6px 18px}
   .kv b{color:var(--ink); font-weight:500}
 
-  /* ===================== skills: radar + bars ===================== */
-  .skwrap{display:grid; grid-template-columns:320px 1fr; gap:28px; align-items:center; margin-top:14px}
+  /* ===================== skills: role switch + radar + list ===================== */
+  .roles{display:flex; gap:8px; flex-wrap:wrap; margin:2px 0 14px}
+  .role{font-family:var(--mono); font-size:12.5px; color:var(--muted); background:var(--surface2); border:1px solid var(--border); border-radius:99px; padding:7px 14px; cursor:pointer; transition:.15s}
+  .role:hover{color:var(--ink); border-color:var(--accent)}
+  .role.on{color:var(--bg); background:var(--accent); border-color:var(--accent)}
+  .rolefit{font-size:14.5px; color:var(--ink); background:var(--accent-soft); border-radius:10px; padding:12px 14px; margin-bottom:18px; min-height:22px}
+  .rolefit b{color:var(--accent)}
+  .skwrap{display:grid; grid-template-columns:320px 1fr; gap:28px; align-items:center}
   @media (max-width:720px){ .skwrap{grid-template-columns:1fr} }
   .radar-holder{display:flex; justify-content:center}
   #radar{width:300px; height:300px; max-width:100%}
-  .skillcols{display:grid; grid-template-columns:1fr 1fr; gap:8px 22px}
+  .skillcols{display:grid; grid-template-columns:1fr 1fr; gap:6px 18px}
   @media (max-width:480px){ .skillcols{grid-template-columns:1fr} }
-  .skill{margin-bottom:8px}
-  .skill .row{display:flex; justify-content:space-between; font-family:var(--mono); font-size:12px; margin-bottom:4px}
-  .skill .row span:last-child{color:var(--muted)}
+  .skill{padding:7px 9px; border-radius:9px; border:1px solid transparent; transition:.2s; cursor:help}
+  .skill:hover{border-color:var(--border); background:var(--surface2)}
+  .skill.rel{background:var(--accent-soft); border-color:transparent}
+  .skill.dim{opacity:.3}
+  .skill .row{display:flex; justify-content:space-between; align-items:baseline; font-size:13px; margin-bottom:5px}
+  .skill .sname{font-family:var(--mono)}
+  .skill .slvl{font-family:var(--mono); font-size:10.5px; font-weight:700; letter-spacing:.03em; color:var(--accent); text-transform:uppercase}
   .bar{height:6px; border-radius:99px; background:var(--surface2); overflow:hidden; border:1px solid var(--border)}
+  .skill.rel .bar{background:var(--surface)}
   .bar i{display:block; height:100%; border-radius:99px; background:linear-gradient(90deg,var(--accent),color-mix(in srgb,var(--accent) 50%,var(--prompt))); width:var(--w); transform:scaleX(0); transform-origin:left; transition:transform 1s cubic-bezier(.2,.7,.2,1)}
 
   /* ===================== timeline ===================== */
@@ -139,26 +153,25 @@
   .job .org{font-family:var(--mono); font-size:12.5px; color:var(--accent); margin:1px 0 6px}
   .job p{margin:0; font-size:14.5px; color:var(--muted)}
 
-  /* ===================== projects (3D tilt) ===================== */
+  /* ===================== projects ===================== */
   .filters{display:flex; gap:8px; flex-wrap:wrap; margin-bottom:16px}
   .filters button{font-family:var(--mono); font-size:12px; color:var(--muted); background:var(--surface2); border:1px solid var(--border); border-radius:99px; padding:6px 13px; cursor:pointer; transition:.15s}
   .filters button:hover{color:var(--ink)}
   .filters button.on{color:var(--bg); background:var(--accent); border-color:var(--accent)}
   .cards{display:grid; grid-template-columns:repeat(auto-fill,minmax(255px,1fr)); gap:16px; perspective:1200px}
-  .card{position:relative; background:var(--surface2); border:1px solid var(--border); border-radius:12px; padding:18px; display:flex; flex-direction:column;
-    transform-style:preserve-3d; transition:transform .12s ease, border-color .2s, box-shadow .2s; will-change:transform}
-  .card::before{content:""; position:absolute; inset:0; border-radius:12px; opacity:0; transition:opacity .2s; pointer-events:none;
-    background:radial-gradient(320px circle at var(--mx,50%) var(--my,0%), var(--accent-soft), transparent 60%)}
+  .card{position:relative; background:var(--surface2); border:1px solid var(--border); border-radius:12px; padding:18px; display:flex; flex-direction:column; transform-style:preserve-3d; transition:transform .12s ease, border-color .2s, box-shadow .2s; will-change:transform}
+  .card::before{content:""; position:absolute; inset:0; border-radius:12px; opacity:0; transition:opacity .2s; pointer-events:none; background:radial-gradient(320px circle at var(--mx,50%) var(--my,0%), var(--accent-soft), transparent 60%)}
   .card:hover{border-color:var(--accent); box-shadow:0 22px 40px -26px var(--glow)}
   .card:hover::before{opacity:1}
   .card.hide{display:none}
   .card>*{transform:translateZ(20px)}
   .card .cn{font-family:var(--mono); font-weight:700; font-size:14.5px; margin-bottom:2px}
-  .card .role{font-family:var(--mono); font-size:11.5px; color:var(--prompt); margin-bottom:10px}
+  .card .role2{font-family:var(--mono); font-size:11.5px; color:var(--prompt); margin-bottom:10px}
   .card p{margin:0 0 12px; font-size:13.5px; color:var(--muted); flex:1}
   .tags{display:flex; gap:6px; flex-wrap:wrap}
   .tag{font-family:var(--mono); font-size:10.5px; color:var(--accent); background:var(--accent-soft); border-radius:5px; padding:3px 7px}
   .stack{font-family:var(--mono); font-size:11px; color:var(--muted); margin-top:10px}
+  .stack .gl{border-bottom:1px dotted var(--muted); cursor:help}
 
   /* ===================== talks / awards ===================== */
   .talk{display:flex; gap:14px; align-items:baseline; padding:11px 0; border-bottom:1px dashed var(--border)}
@@ -167,7 +180,7 @@
   .talk .tt{font-weight:500; font-size:14.5px} .talk .vn{font-family:var(--mono); font-size:12px; color:var(--muted)}
   .up{font-family:var(--mono); font-size:10.5px; color:var(--bg); background:var(--accent); border-radius:5px; padding:2px 6px; margin-left:8px}
   .awards{display:flex; flex-wrap:wrap; gap:8px; margin-top:4px}
-  .award{font-family:var(--mono); font-size:12px; color:var(--muted); background:var(--surface2); border:1px solid var(--border); border-radius:6px; padding:6px 10px}
+  .award{font-family:var(--mono); font-size:12px; color:var(--muted); background:var(--surface2); border:1px solid var(--border); border-radius:6px; padding:6px 10px; cursor:help}
   .award b{color:var(--prompt); font-weight:500}
 
   /* ===================== contact ===================== */
@@ -180,11 +193,9 @@
   @media (max-width:560px){ .win-body{padding:16px} .talk{flex-direction:column; gap:2px} .talk .yr{min-width:0} }
 
   /* ===================== command palette ===================== */
-  #palette{position:fixed; inset:0; z-index:9500; display:none; align-items:flex-start; justify-content:center;
-    background:rgba(3,6,10,.5); backdrop-filter:blur(4px); padding-top:12vh}
+  #palette{position:fixed; inset:0; z-index:9500; display:none; align-items:flex-start; justify-content:center; background:rgba(3,6,10,.5); backdrop-filter:blur(4px); padding-top:12vh}
   #palette.open{display:flex}
-  .pal{width:min(560px,92vw); background:var(--surface); border:1px solid var(--border); border-radius:14px; overflow:hidden;
-    box-shadow:0 30px 80px -30px rgba(0,0,0,.6)}
+  .pal{width:min(560px,92vw); background:var(--surface); border:1px solid var(--border); border-radius:14px; overflow:hidden; box-shadow:0 30px 80px -30px rgba(0,0,0,.6)}
   .pal input{width:100%; border:none; outline:none; background:transparent; color:var(--ink); font-family:var(--mono); font-size:15px; padding:16px 18px; border-bottom:1px solid var(--border)}
   .pal-list{max-height:340px; overflow-y:auto; padding:6px}
   .pal-item{display:flex; align-items:center; gap:10px; padding:10px 12px; border-radius:8px; cursor:pointer; font-size:14px}
@@ -193,14 +204,15 @@
   .pal-item.sel,.pal-item:hover{background:var(--accent-soft)}
   .pal-foot{padding:8px 14px; border-top:1px solid var(--border); font-family:var(--mono); font-size:11px; color:var(--muted); display:flex; gap:14px}
 
-  /* ===================== CRT retro mode ===================== */
-  body.crt::after{content:""; position:fixed; inset:0; z-index:7000; pointer-events:none;
-    background:repeating-linear-gradient(0deg, rgba(0,0,0,.16) 0, rgba(0,0,0,.16) 1px, transparent 2px, transparent 4px);
-    animation:flick .12s steps(2) infinite}
+  /* ===================== tooltip ===================== */
+  #tip{position:fixed; z-index:9800; max-width:260px; background:var(--tipbg); color:var(--tipink); font-family:var(--sans); font-size:12.5px; line-height:1.5; padding:9px 12px; border-radius:9px; box-shadow:0 14px 34px -12px rgba(0,0,0,.55); pointer-events:none; opacity:0; transform:translateY(4px); transition:opacity .13s, transform .13s; border:1px solid var(--border)}
+  #tip.show{opacity:1; transform:translateY(0)}
+  #tip b{color:var(--accent)}
+
+  /* ===================== CRT / matrix ===================== */
+  body.crt::after{content:""; position:fixed; inset:0; z-index:7000; pointer-events:none; background:repeating-linear-gradient(0deg, rgba(0,0,0,.16) 0, rgba(0,0,0,.16) 1px, transparent 2px, transparent 4px); animation:flick .12s steps(2) infinite}
   body.crt .wrap, body.crt .menubar{text-shadow:0 0 3px var(--glow)}
   @keyframes flick{0%{opacity:.9}100%{opacity:1}}
-
-  /* ===================== matrix ===================== */
   #matrix{position:fixed; inset:0; z-index:9600; display:none; background:#000}
   #matrix.on{display:block}
   #matrix .x{position:absolute; top:14px; right:16px; z-index:2; color:#4ade80; font-family:var(--mono); font-size:12px; border:1px solid #1f3a37; border-radius:6px; padding:6px 12px; cursor:pointer; background:rgba(0,0,0,.4)}
@@ -213,8 +225,13 @@
   }
 </style>
 
+<script>/* set dark as default before paint (unless a saved choice exists) */
+try{document.documentElement.setAttribute('data-theme',localStorage.getItem('bs_theme')||'dark');}
+catch(e){document.documentElement.setAttribute('data-theme','dark');}</script>
+
 <canvas id="bgcanvas" aria-hidden="true"></canvas>
 <div id="progress"></div>
+<div id="tip" role="tooltip"></div>
 
 <!-- ===================== BOOT ===================== -->
 <div id="boot">
@@ -237,25 +254,26 @@
   </div>
   <div class="mb-right">
     <span class="clock" id="clock">--:--</span>
-    <button class="mb-btn" id="palBtn">⌘ <kbd>K</kbd></button>
-    <button class="mb-btn" id="crtBtn" title="Retro mode">▚ CRT</button>
-    <button class="mb-btn" id="themeBtn" title="Toggle theme">◐</button>
+    <button class="mb-btn" id="palBtn" data-tip="<b>Quick search.</b> Jump to any section or run an action from one menu. Shortcut: ⌘K (Mac) / Ctrl+K.">⌘ <kbd>K</kbd></button>
+    <button class="mb-btn" id="crtBtn" data-tip="<b>Retro mode.</b> Adds an old-school CRT monitor look — scanlines and a subtle flicker. Purely for fun.">▚ CRT</button>
+    <button class="mb-btn" id="themeBtn" data-tip="<b>Light / dark.</b> Switch the color theme. Starts in dark mode.">◐</button>
   </div>
 </div>
 
 <div class="wrap">
   <!-- HERO TERMINAL -->
-  <section class="win" aria-label="Interactive terminal">
-    <div class="win-bar"><div class="dots"><i></i><i></i><i></i></div><div class="win-title">brandon@stonesifer: ~ — zsh</div></div>
+  <section class="win" aria-label="Interactive intro">
+    <div class="win-bar"><div class="dots"><i data-tip="On a real Mac window these close, minimize, and zoom. Here they're just for looks. 🙂"></i><i></i><i></i></div><div class="win-title">brandon@stonesifer — welcome</div></div>
     <div class="win-body">
-      <div class="term" id="term" role="group" aria-label="Terminal. Type help and press enter.">
+      <div class="term" id="term" role="group" aria-label="Interactive intro. Click a button or type a command.">
         <div class="term-out" id="out"></div>
+        <div class="chips" id="chips" hidden></div>
         <div class="inputline" id="inputline" hidden>
           <span class="ps1">brandon@stonesifer <span class="path">~</span> $</span>
-          <input class="cmdin" id="cmd" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Terminal command input">
+          <input class="cmdin" id="cmd" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Type a command">
           <span class="blink" aria-hidden="true">▋</span>
         </div>
-        <div class="hint">try <b>help</b> · <b>projects</b> · <b>skills</b> · <b>sudo hire-brandon</b> · <b>matrix</b> &nbsp;| &nbsp;press <b>⌘K</b> to search · Tab to autocomplete</div>
+        <div class="hint" id="hint" hidden>Not into typing? Just click the buttons above, or press <b>⌘K</b>. Prefer to read? Scroll on down ↓</div>
       </div>
     </div>
   </section>
@@ -264,8 +282,8 @@
   <section class="win reveal" id="about">
     <div class="win-bar"><div class="dots"><i></i><i></i><i></i></div><div class="win-title">~/about.md</div></div>
     <div class="win-body">
-      <h2 class="sec"># whoami</h2>
-      <p class="lead" style="margin-top:10px">Research administration leader and <span class="hl">data scientist / AI developer</span>. I run the OSPREY (InfoEd) research ecosystem at UNCW across the full research lifecycle, and build the analytics, dashboards, and AI agents that turn institutional data into decisions.</p>
+      <div class="hdr"><h2>About Me</h2><div class="sub">The short version — hover any <span class="cue">underlined term</span> for a plain-English explainer.</div></div>
+      <p class="lead">Research administration leader and <span class="hl">data scientist / AI developer</span>. I run the <span class="gl" data-tip="<b>OSPREY</b> is UNCW's branded install of <b>InfoEd</b> — the software that manages the full life of a research grant, from proposal to award to compliance.">OSPREY (InfoEd)</span> research ecosystem at UNCW across the full research lifecycle, and build the analytics, dashboards, and AI agents that turn institutional data into decisions.</p>
       <p class="lead" style="margin-top:12px">Completing an <span class="hl">M.S. in Data Science &amp; Artificial Intelligence</span> (Dec 2026, 4.0 GPA), with a decade of U.S. Army officer leadership behind the technical work.</p>
       <div class="kv"><span><b>📍</b> Wilmington, NC</span><span><b>🎓</b> UNCW · MS Data Science &amp; AI</span><span><b>🪖</b> Logistics Officer, NC Army National Guard</span></div>
     </div>
@@ -273,9 +291,11 @@
 
   <!-- SKILLS -->
   <section class="win reveal" id="skills">
-    <div class="win-bar"><div class="dots"><i></i><i></i><i></i></div><div class="win-title">~/skills.cfg</div></div>
+    <div class="win-bar"><div class="dots"><i></i><i></i><i></i></div><div class="win-title">~/skills</div></div>
     <div class="win-body">
-      <h2 class="sec"># cat skills.cfg</h2>
+      <div class="hdr"><h2>Skills &amp; Expertise</h2><div class="sub"><span class="cue">Pick a role below</span> — the chart and skills reshape to show what matters most for it.</div></div>
+      <div class="roles" id="roleTabs"></div>
+      <div class="rolefit" id="roleFit"></div>
       <div class="skwrap">
         <div class="radar-holder"><canvas id="radar" width="600" height="600" role="img" aria-label="Radar chart of skill domains"></canvas></div>
         <div class="skillcols" id="skillcols"></div>
@@ -285,9 +305,9 @@
 
   <!-- PROJECTS -->
   <section class="win reveal" id="projects">
-    <div class="win-bar"><div class="dots"><i></i><i></i><i></i></div><div class="win-title">~/projects/</div></div>
+    <div class="win-bar"><div class="dots"><i></i><i></i><i></i></div><div class="win-title">~/projects</div></div>
     <div class="win-body">
-      <h2 class="sec" style="margin-bottom:14px"># ls projects/ &nbsp;<span style="color:var(--muted)">— filter:</span></h2>
+      <div class="hdr"><h2>Projects</h2><div class="sub">Things I've built. <span class="cue">Filter by focus area</span>, and hover the underlined tech for what it means.</div></div>
       <div class="filters" id="filters"></div>
       <div class="cards" id="cards"></div>
     </div>
@@ -295,42 +315,44 @@
 
   <!-- EXPERIENCE -->
   <section class="win reveal" id="experience">
-    <div class="win-bar"><div class="dots"><i></i><i></i><i></i></div><div class="win-title">~/experience.log</div></div>
-    <div class="win-body"><h2 class="sec" style="margin-bottom:18px"># git log --oneline</h2><div class="tl" id="timeline"></div></div>
+    <div class="win-bar"><div class="dots"><i></i><i></i><i></i></div><div class="win-title">~/experience</div></div>
+    <div class="win-body">
+      <div class="hdr"><h2>Experience</h2><div class="sub">A glowing dot marks a role I currently hold.</div></div>
+      <div class="tl" id="timeline"></div>
+    </div>
   </section>
 
   <!-- TALKS -->
   <section class="win reveal" id="talks">
-    <div class="win-bar"><div class="dots"><i></i><i></i><i></i></div><div class="win-title">~/presentations.list</div></div>
+    <div class="win-bar"><div class="dots"><i></i><i></i><i></i></div><div class="win-title">~/speaking</div></div>
     <div class="win-body">
-      <h2 class="sec" style="margin-bottom:6px"># conference presentations</h2>
+      <div class="hdr"><h2>Speaking &amp; Recognition</h2><div class="sub">Conference talks and honors.</div></div>
       <div id="talklist"></div>
-      <h2 class="sec" style="margin:22px 0 8px"># honors &amp; awards</h2>
+      <div class="hdr" style="margin:22px 0 8px"><h2 style="font-size:15px">Honors &amp; Awards</h2></div>
       <div class="awards" id="awardlist"></div>
     </div>
   </section>
 
   <!-- CONTACT -->
   <section class="win reveal" id="contact">
-    <div class="win-bar"><div class="dots"><i></i><i></i><i></i></div><div class="win-title">~/contact.sh</div></div>
+    <div class="win-bar"><div class="dots"><i></i><i></i><i></i></div><div class="win-title">~/contact</div></div>
     <div class="win-body">
-      <h2 class="sec"># ./contact.sh</h2>
-      <p class="lead" style="margin-top:10px">Open to conversations on research analytics, AI in research administration, and data science collaboration.</p>
+      <div class="hdr"><h2>Get in Touch</h2><div class="sub">Open to conversations on research analytics, AI in research administration, and data science.</div></div>
       <div class="contact-row">
-        <button class="cbtn" id="emailBtn"><span class="k">$</span> copy email</button>
+        <button class="cbtn" id="emailBtn" data-tip="Click to copy my email to your clipboard."><span class="k">✉</span> copy email</button>
         <a class="cbtn" href="https://www.linkedin.com/in/lt-brandon-stonesifer-m-sc-53652b351/" target="_blank" rel="noopener"><span class="k">↗</span> LinkedIn</a>
         <a class="cbtn" href="https://github.com/Stone0012" target="_blank" rel="noopener"><span class="k">↗</span> GitHub</a>
       </div>
     </div>
   </section>
 
-  <div class="foot">StonesiferOS v2.0 · built with <span class="c">&lt;/&gt;</span> · press <span class="c">⌘K</span> or type <span class="c">help</span> · © <span id="yr"></span> Brandon Stonesifer</div>
+  <div class="foot">StonesiferOS v3 · built with <span class="c">&lt;/&gt;</span> · press <span class="c">⌘K</span> to search · © <span id="yr"></span> Brandon Stonesifer</div>
 </div>
 
 <!-- ===================== COMMAND PALETTE ===================== -->
 <div id="palette" role="dialog" aria-modal="true" aria-label="Command palette">
   <div class="pal">
-    <input id="palInput" placeholder="Type a command or section…  (Esc to close)" aria-label="Command palette input">
+    <input id="palInput" placeholder="Search sections & actions…  (Esc to close)" aria-label="Search">
     <div class="pal-list" id="palList"></div>
     <div class="pal-foot"><span>↑↓ navigate</span><span>⏎ select</span><span>esc close</span></div>
   </div>
@@ -342,12 +364,36 @@
 <script>
 /* ===================== data ===================== */
 const EMAIL="stonesiferb@uncw.edu";
+const LINKEDIN="https://www.linkedin.com/in/lt-brandon-stonesifer-m-sc-53652b351/";
+const GITHUB="https://github.com/Stone0012";
+
+/* skills: [name, level, roles, tip] — roles: ra=Research Admin, ds=Data Scientist, ai=AI Developer */
 const SKILLS=[
-  {cat:"languages", items:[["Python",95],["R",88],["SQL",92],["JavaScript / HTML",78]]},
-  {cat:"ai & machine learning", items:[["LLM agents · MCP · RAG",90],["Multi-agent (CrewAI)",84],["Neural networks · scikit-learn",85],["Computer vision · DepthAI",76]]},
-  {cat:"platforms & tools", items:[["InfoEd / OSPREY admin",97],["Power BI · Tableau",90],["Git · Bash · CLI · Lynx",85],["Azure · Foundry",74]]},
+  ["Python",95,["ds","ai","ra"],"My main language — powers BotanyBot, the GE agent, Grogu, and most analytics work."],
+  ["R",88,["ds","ra"],"Statistical computing & visualization; used across graduate coursework and reporting."],
+  ["SQL",92,["ds","ra"],"Querying and shaping institutional research data for dashboards and reports."],
+  ["JavaScript / HTML",78,["ai"],"Front-ends and interactive tools — including this very page."],
+  ["LLM agents · MCP · RAG",90,["ai"],"Building AI assistants grounded in real documents. MCP lets them use tools; RAG makes answers cite sources."],
+  ["Multi-agent (CrewAI)",84,["ai"],"Coordinating teams of AI agents that split up a task — see the Grogu project."],
+  ["Neural networks · scikit-learn",85,["ds","ai"],"Training and evaluating ML models, from tabular data to computer vision."],
+  ["Computer vision · DepthAI",76,["ds","ai"],"On-camera AI vision for robotics — the BotanyBot flower detector."],
+  ["InfoEd / OSPREY admin",97,["ra"],"I administer UNCW's entire InfoEd (OSPREY) research platform end to end."],
+  ["Power BI · Tableau",90,["ra","ds"],"Turning research data into dashboards leaders actually use."],
+  ["Git · Bash · CLI",85,["ai","ds"],"Version control and command-line tooling for everyday development."],
+  ["Azure · Foundry",74,["ai","ra"],"Deploying AI apps on Microsoft's cloud — the Grant Proposal tool's new home."],
 ];
-const RADAR=[["Python",95],["AI / Agents",90],["Data Viz",90],["Machine Learning",83],["InfoEd / OSPREY",97],["Git / CLI",85]];
+const RADAR_AXES=["Python","AI / Agents","Data Viz","Machine\nLearning","InfoEd / OSPREY","Git / CLI"];
+/* per-role radar profile (values 0-100 for the 6 axes above) */
+const ROLES=[
+  {id:"all", label:"Everything", radar:[95,90,90,83,97,85],
+   fit:"<b>Three hats, one operator.</b> Research administration, data science, and AI development — plus a decade of Army leadership tying it together."},
+  {id:"ra", label:"Research Administrator", radar:[70,60,92,55,97,68],
+   fit:"<b>As a Research Administrator:</b> runs the OSPREY (InfoEd) platform end to end and turns institutional data into the dashboards and reports leaders act on."},
+  {id:"ds", label:"Data Scientist", radar:[95,78,90,92,68,84],
+   fit:"<b>As a Data Scientist:</b> builds the full pipeline — from raw data to models to clear visualization — finishing an M.S. in Data Science & AI with a 4.0."},
+  {id:"ai", label:"AI Developer", radar:[88,96,68,88,62,90],
+   fit:"<b>As an AI Developer:</b> ships real systems — LLM agents, multi-agent orchestration, retrieval, and computer vision — from prototype to Azure deployment."},
+];
 const PROJECTS=[
   {n:"Grant Proposal Senior Colleague",role:"owner / developer",tags:["AI & ML","Research Admin"],stack:"React · Node · Azure · Foundry",
    d:"An AI scholarly collaborator that critiques grant proposals on concept, methods, feasibility, and funder fit — 8 consultation modes, an evidence-linked requirement ledger, and sponsor intelligence. Now migrating to a university-managed Azure web app."},
@@ -359,7 +405,7 @@ const PROJECTS=[
    d:"An agent over thousands of procedure documents: summarization, classification, and acronym lookup, plus new requirement-level revision diffing and a requirements-checklist extractor."},
   {n:"Grogu the NFL Guru",role:"multi-agent system",tags:["AI & ML","Data Science"],stack:"CrewAI · Azure OpenAI · Gradio",
    d:"A multi-agent Q&A system — a dispatcher 'Agent in Charge' routes each question to one of four agents bound to ESPN API endpoints, then summarizes the JSON into a clean answer."},
-  {n:"Compliance-Lookup Pilot",role:"REACH 2027 pilot",tags:["AI & ML","Research Admin"],stack:"grounded retrieval · eval",
+  {n:"Compliance-Lookup Pilot",role:"REACH 2027 pilot",tags:["AI & ML","Research Admin"],stack:"grounded retrieval · evaluation",
    d:"A narrowly scoped, admin-facing agent that surfaces and cites the right policy or sponsor guidance — built to support, not replace, administrators, with an honest evaluation of accuracy and failure modes."},
 ];
 const JOBS=[
@@ -378,25 +424,73 @@ const TALKS=[
   {y:"2025",t:"Data-Driven Grants Management: Leveraging InfoEd for Metrics & Insights",v:"InfoEd Global User Group Meeting"},
   {y:"2024",t:"Project Management Essentials for Successful InfoEd Upgrades",v:"InfoEd Global User Group Meeting"},
 ];
-const AWARDS=[["Gary H. Pendleton","Excellence in Leadership Award"],["ARCOM","Army Commendation Medal"],["GWOT","Global War on Terrorism Medal"],["EGWOT","Expeditionary GWOT Medal"]];
+const AWARDS=[
+  ["Gary H. Pendleton","Excellence in Leadership Award","A leadership award recognizing standout service."],
+  ["ARCOM","Army Commendation Medal","U.S. Army decoration for sustained acts of heroism or meritorious service."],
+  ["GWOT","Global War on Terrorism Medal","Service medal for supporting global counter-terrorism operations."],
+  ["EGWOT","Expeditionary GWOT Medal","Awarded for deployed service in counter-terrorism operations abroad."],
+];
+/* glossary for hover-explainers on tech terms */
+const GLOSSARY={
+  "MCP":"<b>Model Context Protocol</b> — an open standard that lets AI assistants securely use outside tools and data.",
+  "RAG":"<b>Retrieval-Augmented Generation</b> — grounds AI answers in real documents so they cite sources instead of guessing.",
+  "CrewAI":"<b>CrewAI</b> — a framework for building teams of AI agents that collaborate on a task.",
+  "DepthAI":"<b>DepthAI</b> — software for Luxonis 'OAK' cameras that runs AI vision models on the camera itself.",
+  "ROS 2":"<b>ROS 2</b> — Robot Operating System, the standard framework for building robot software.",
+  "Milvus":"<b>Milvus</b> — an open-source vector database used for AI similarity search.",
+  "FastMCP":"<b>FastMCP</b> — a Python framework for quickly building MCP tools/servers.",
+  "OpenAI":"<b>OpenAI</b> — provider of the large language models powering the agent.",
+  "Foundry":"<b>Microsoft Foundry</b> — Azure's platform for building & deploying AI applications.",
+  "Gradio":"<b>Gradio</b> — a Python library for quickly building web UIs for machine-learning apps.",
+  "Azure OpenAI":"<b>Azure OpenAI</b> — OpenAI's models hosted on Microsoft's secure cloud.",
+  "Node":"<b>Node.js</b> — a runtime for building server-side apps in JavaScript.",
+  "React":"<b>React</b> — a popular library for building interactive web interfaces.",
+};
 
 const esc=s=>String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
 const reduced=window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 document.body.classList.add("js");
+function lvl(v){return v>=90?"Expert":v>=80?"Advanced":v>=70?"Proficient":"Working";}
+function wrapGlossary(text){
+  let out=esc(text);
+  Object.keys(GLOSSARY).sort((a,b)=>b.length-a.length).forEach(term=>{
+    const re=new RegExp("(?<![\\w-])("+term.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")+")(?![\\w-])","g");
+    out=out.replace(re,`<span class="gl" data-tip="${GLOSSARY[term].replace(/"/g,'&quot;')}">$1</span>`);
+  });
+  return out;
+}
 
 /* ===================== render ===================== */
 function renderSkills(){
-  document.getElementById("skillcols").innerHTML=SKILLS.flatMap(c=>c.items).map(([n,v])=>`
-    <div class="skill"><div class="row"><span>${esc(n)}</span><span>${v}%</span></div>
-    <div class="bar"><i style="--w:${v}%"></i></div></div>`).join("");
+  document.getElementById("skillcols").innerHTML=SKILLS.map(([n,v,roles,tip])=>`
+    <div class="skill" data-roles="${roles.join('|')}" data-tip="${tip.replace(/"/g,'&quot;')} <br><span style='color:var(--muted)'>Self-assessed proficiency: ${v}%</span>">
+      <div class="row"><span class="sname">${esc(n)}</span><span class="slvl">${lvl(v)}</span></div>
+      <div class="bar"><i style="--w:${v}%"></i></div>
+    </div>`).join("");
+}
+function renderRoles(){
+  document.getElementById("roleTabs").innerHTML=ROLES.map((r,i)=>`<button class="role ${i===0?'on':''}" data-role="${r.id}">${esc(r.label)}</button>`).join("");
+  document.getElementById("roleFit").innerHTML=ROLES[0].fit;
+  document.getElementById("roleTabs").addEventListener("click",e=>{const b=e.target.closest("button"); if(!b)return; selectRole(b.dataset.role);});
+}
+function selectRole(id){
+  const r=ROLES.find(x=>x.id===id)||ROLES[0];
+  document.querySelectorAll("#roleTabs .role").forEach(x=>x.classList.toggle("on",x.dataset.role===id));
+  document.getElementById("roleFit").innerHTML=r.fit;
+  document.querySelectorAll(".skill").forEach(s=>{
+    const rs=s.dataset.roles.split("|");
+    if(id==="all"){s.classList.remove("dim");s.classList.remove("rel");}
+    else{const rel=rs.includes(id); s.classList.toggle("rel",rel); s.classList.toggle("dim",!rel);}
+  });
+  tweenRadar(r.radar);
 }
 function renderProjects(){
   document.getElementById("cards").innerHTML=PROJECTS.map(p=>`
     <article class="card" data-tags="${p.tags.join("|")}">
-      <div class="cn">${esc(p.n)}</div><div class="role">${esc(p.role)}</div>
+      <div class="cn">${esc(p.n)}</div><div class="role2">${esc(p.role)}</div>
       <p>${esc(p.d)}</p>
       <div class="tags">${p.tags.map(t=>`<span class="tag">${esc(t)}</span>`).join("")}</div>
-      <div class="stack">▸ ${esc(p.stack)}</div></article>`).join("");
+      <div class="stack">▸ ${wrapGlossary(p.stack)}</div></article>`).join("");
   const cats=["All",...new Set(PROJECTS.flatMap(p=>p.tags))];
   const f=document.getElementById("filters");
   f.innerHTML=cats.map((t,i)=>`<button class="${i?'':'on'}" data-f="${esc(t)}">${esc(t)}</button>`).join("");
@@ -411,10 +505,24 @@ function renderTimeline(){document.getElementById("timeline").innerHTML=JOBS.map
 function renderTalks(){
   document.getElementById("talklist").innerHTML=TALKS.map(t=>`
     <div class="talk"><span class="yr">${esc(t.y)}</span><span><span class="tt">${esc(t.t)}</span>${t.up?'<span class="up">upcoming</span>':''}<br><span class="vn">${esc(t.v)}</span></span></div>`).join("");
-  document.getElementById("awardlist").innerHTML=AWARDS.map(a=>`<span class="award"><b>${esc(a[0])}</b> · ${esc(a[1])}</span>`).join("");
+  document.getElementById("awardlist").innerHTML=AWARDS.map(a=>`<span class="award" data-tip="${a[2].replace(/"/g,'&quot;')}"><b>${esc(a[0])}</b> · ${esc(a[1])}</span>`).join("");
 }
-renderSkills();renderProjects();renderTimeline();renderTalks();
+renderSkills();renderRoles();renderProjects();renderTimeline();renderTalks();
 document.getElementById("yr").textContent=new Date().getFullYear();
+
+/* ===================== tooltip engine ===================== */
+const tip=document.getElementById("tip"); let tipEl=null;
+function showTip(el,x,y){const t=el.getAttribute("data-tip"); if(!t)return; tip.innerHTML=t; tip.classList.add("show"); moveTip(x,y);}
+function moveTip(x,y){const r=tip.getBoundingClientRect(); let nx=x+14, ny=y+16;
+  if(nx+r.width>innerWidth-8) nx=x-r.width-14; if(ny+r.height>innerHeight-8) ny=y-r.height-16;
+  tip.style.left=Math.max(8,nx)+"px"; tip.style.top=Math.max(8,ny)+"px";}
+function hideTip(){tip.classList.remove("show");}
+document.addEventListener("pointerover",e=>{const el=e.target.closest("[data-tip]"); if(el&&el!==tipEl){tipEl=el; showTip(el,e.clientX,e.clientY);}});
+document.addEventListener("pointermove",e=>{if(tipEl&&tip.classList.contains("show"))moveTip(e.clientX,e.clientY);});
+document.addEventListener("pointerout",e=>{const el=e.target.closest("[data-tip]"); if(el&&el===tipEl){tipEl=null; hideTip();}});
+document.addEventListener("focusin",e=>{const el=e.target.closest("[data-tip]"); if(el){const r=el.getBoundingClientRect(); tipEl=el; showTip(el,r.left,r.bottom);}});
+document.addEventListener("focusout",()=>{tipEl=null;hideTip();});
+window.addEventListener("scroll",hideTip,{passive:true});
 
 /* ===================== 3D tilt ===================== */
 function attachTilt(){
@@ -428,84 +536,76 @@ function attachTilt(){
   });
 }
 
-/* ===================== radar chart ===================== */
+/* ===================== radar ===================== */
 const radar=document.getElementById("radar"), rx=radar.getContext("2d");
-let radarT=0, radarRAF;
+let curVals=RADAR_AXES.map(()=>0), radarRAF;
 function cssvar(n){return getComputedStyle(document.documentElement).getPropertyValue(n).trim();}
-function drawRadar(prog){
-  const S=600, c=S/2, R=200, n=RADAR.length;
+function drawRadar(vals){
+  const S=600,c=S/2,R=196,n=RADAR_AXES.length;
   rx.clearRect(0,0,S,S);
-  const acc=cssvar("--accent"), ink=cssvar("--ink"), mut=cssvar("--muted"), bord=cssvar("--border");
+  const acc=cssvar("--accent"),ink=cssvar("--ink"),mut=cssvar("--muted"),bord=cssvar("--border");
   rx.lineWidth=1.4;
-  for(let ring=1;ring<=4;ring++){ rx.beginPath();
-    for(let i=0;i<=n;i++){const a=-Math.PI/2+i*2*Math.PI/n, rr=R*ring/4;
-      const x=c+rr*Math.cos(a), y=c+rr*Math.sin(a); i?rx.lineTo(x,y):rx.moveTo(x,y);}
-    rx.strokeStyle=bord; rx.globalAlpha=.7; rx.stroke(); rx.globalAlpha=1; }
-  for(let i=0;i<n;i++){const a=-Math.PI/2+i*2*Math.PI/n;
-    rx.beginPath(); rx.moveTo(c,c); rx.lineTo(c+R*Math.cos(a),c+R*Math.sin(a)); rx.strokeStyle=bord; rx.globalAlpha=.6; rx.stroke(); rx.globalAlpha=1;}
+  for(let ring=1;ring<=4;ring++){rx.beginPath();
+    for(let i=0;i<=n;i++){const a=-Math.PI/2+i*2*Math.PI/n,rr=R*ring/4;const x=c+rr*Math.cos(a),y=c+rr*Math.sin(a);i?rx.lineTo(x,y):rx.moveTo(x,y);}
+    rx.strokeStyle=bord;rx.globalAlpha=.7;rx.stroke();rx.globalAlpha=1;}
+  for(let i=0;i<n;i++){const a=-Math.PI/2+i*2*Math.PI/n;rx.beginPath();rx.moveTo(c,c);rx.lineTo(c+R*Math.cos(a),c+R*Math.sin(a));rx.strokeStyle=bord;rx.globalAlpha=.6;rx.stroke();rx.globalAlpha=1;}
   rx.beginPath();
-  for(let i=0;i<=n;i++){const idx=i%n, a=-Math.PI/2+idx*2*Math.PI/n, rr=R*(RADAR[idx][1]/100)*prog;
-    const x=c+rr*Math.cos(a), y=c+rr*Math.sin(a); i?rx.lineTo(x,y):rx.moveTo(x,y);}
+  for(let i=0;i<=n;i++){const idx=i%n,a=-Math.PI/2+idx*2*Math.PI/n,rr=R*(vals[idx]/100);const x=c+rr*Math.cos(a),y=c+rr*Math.sin(a);i?rx.lineTo(x,y):rx.moveTo(x,y);}
   rx.closePath();
-  const grad=rx.createRadialGradient(c,c,10,c,c,R);
-  grad.addColorStop(0,acc+"cc"); grad.addColorStop(1,acc+"22");
-  rx.fillStyle=grad; rx.globalAlpha=.55; rx.fill(); rx.globalAlpha=1;
-  rx.strokeStyle=acc; rx.lineWidth=2.4; rx.stroke();
-  for(let i=0;i<n;i++){const a=-Math.PI/2+i*2*Math.PI/n, rr=R*(RADAR[i][1]/100)*prog;
-    rx.beginPath(); rx.arc(c+rr*Math.cos(a),c+rr*Math.sin(a),4,0,7); rx.fillStyle=acc; rx.fill();}
-  rx.fillStyle=mut; rx.font="600 20px "+cssvar("--mono").split(",")[0].replace(/'/g,"")+", monospace"; rx.textAlign="center"; rx.textBaseline="middle";
-  for(let i=0;i<n;i++){const a=-Math.PI/2+i*2*Math.PI/n, lr=R+34;
-    let x=c+lr*Math.cos(a), y=c+lr*Math.sin(a);
-    rx.fillStyle=ink; rx.fillText(RADAR[i][0], x, y);}
+  const grad=rx.createRadialGradient(c,c,10,c,c,R);grad.addColorStop(0,acc+"cc");grad.addColorStop(1,acc+"22");
+  rx.fillStyle=grad;rx.globalAlpha=.55;rx.fill();rx.globalAlpha=1;
+  rx.strokeStyle=acc;rx.lineWidth=2.4;rx.stroke();
+  for(let i=0;i<n;i++){const a=-Math.PI/2+i*2*Math.PI/n,rr=R*(vals[i]/100);rx.beginPath();rx.arc(c+rr*Math.cos(a),c+rr*Math.sin(a),4,0,7);rx.fillStyle=acc;rx.fill();}
+  rx.font="600 19px "+cssvar("--mono").split(",")[0].replace(/'/g,"")+", monospace";rx.textAlign="center";rx.textBaseline="middle";rx.fillStyle=ink;
+  for(let i=0;i<n;i++){const a=-Math.PI/2+i*2*Math.PI/n,lr=R+30;const x=c+lr*Math.cos(a),y=c+lr*Math.sin(a);
+    const parts=RADAR_AXES[i].split("\n"); parts.forEach((ln,k)=>rx.fillText(ln,x,y+(k-(parts.length-1)/2)*20));}
 }
-function animateRadar(){ if(reduced){drawRadar(1);return;}
-  radarT=0; cancelAnimationFrame(radarRAF);
-  (function step(){ radarT=Math.min(1,radarT+.045); drawRadar(1-Math.pow(1-radarT,3)); if(radarT<1) radarRAF=requestAnimationFrame(step); })();
+function tweenRadar(target){
+  if(reduced){curVals=target.slice();drawRadar(curVals);return;}
+  cancelAnimationFrame(radarRAF); const from=curVals.slice(); let t=0;
+  (function step(){t=Math.min(1,t+.06);const e=1-Math.pow(1-t,3);curVals=from.map((f,i)=>f+(target[i]-f)*e);drawRadar(curVals);if(t<1)radarRAF=requestAnimationFrame(step);})();
 }
 
 /* ===================== reveal + bars + radar on scroll ===================== */
 let radarShown=false;
-const io=new IntersectionObserver((es)=>{es.forEach(en=>{ if(en.isIntersecting){ en.target.classList.add("in");
-  if(en.target.id==="skills"){ en.target.querySelectorAll(".bar i").forEach(b=>b.style.transform="scaleX(1)"); if(!radarShown){radarShown=true;animateRadar();} }
-  io.unobserve(en.target);} });},{threshold:.18});
+const io=new IntersectionObserver(es=>{es.forEach(en=>{if(en.isIntersecting){en.target.classList.add("in");
+  if(en.target.id==="skills"&&!radarShown){radarShown=true; en.target.querySelectorAll(".bar i").forEach(b=>b.style.transform="scaleX(1)"); tweenRadar(ROLES[0].radar);}
+  io.unobserve(en.target);}});},{threshold:.15});
 document.querySelectorAll(".reveal").forEach(el=>io.observe(el));
 
-/* ===================== background particles + parallax ===================== */
-const cv=document.getElementById("bgcanvas"), cx=cv.getContext("2d");
-let W,H,dots,braf,mx=0,my=0;
+/* ===================== background particles ===================== */
+const cv=document.getElementById("bgcanvas"),cx=cv.getContext("2d");
+let W,H,dots,braf,mmx=0,mmy=0;
 function sz(){W=cv.width=innerWidth*devicePixelRatio;H=cv.height=innerHeight*devicePixelRatio;cv.style.width=innerWidth+"px";cv.style.height=innerHeight+"px";}
-function initDots(){const n=Math.min(80,Math.floor(innerWidth/20));
-  dots=Array.from({length:n},()=>({x:Math.random()*W,y:Math.random()*H,vx:(Math.random()-.5)*.12*devicePixelRatio,vy:(Math.random()-.5)*.12*devicePixelRatio,z:Math.random()*.6+.4}));}
-function drawB(stat){const col=cssvar("--accent"); cx.clearRect(0,0,W,H);
-  const R=2.2*devicePixelRatio, LINK=120*devicePixelRatio;
-  for(const d of dots){ if(!stat&&!reduced){d.x+=d.vx+mx*d.z*.4;d.y+=d.vy+my*d.z*.4; if(d.x<0)d.x+=W; if(d.x>W)d.x-=W; if(d.y<0)d.y+=H; if(d.y>H)d.y-=H;}
-    cx.beginPath();cx.arc(d.x,d.y,R*d.z,0,7);cx.fillStyle=col;cx.globalAlpha=.55*d.z;cx.fill();}
+function initDots(){const n=Math.min(80,Math.floor(innerWidth/20));dots=Array.from({length:n},()=>({x:Math.random()*W,y:Math.random()*H,vx:(Math.random()-.5)*.12*devicePixelRatio,vy:(Math.random()-.5)*.12*devicePixelRatio,z:Math.random()*.6+.4}));}
+function drawB(stat){const col=cssvar("--accent");cx.clearRect(0,0,W,H);const R=2.2*devicePixelRatio,LINK=120*devicePixelRatio;
+  for(const d of dots){if(!stat&&!reduced){d.x+=d.vx+mmx*d.z*.4;d.y+=d.vy+mmy*d.z*.4;if(d.x<0)d.x+=W;if(d.x>W)d.x-=W;if(d.y<0)d.y+=H;if(d.y>H)d.y-=H;}
+    cx.beginPath();cx.arc(d.x,d.y,R*d.z,0,7);cx.fillStyle=col;cx.globalAlpha=.5*d.z;cx.fill();}
   for(let i=0;i<dots.length;i++)for(let j=i+1;j<dots.length;j++){const a=dots[i],b=dots[j],dist=Math.hypot(a.x-b.x,a.y-b.y);
-    if(dist<LINK){cx.beginPath();cx.moveTo(a.x,a.y);cx.lineTo(b.x,b.y);cx.strokeStyle=col;cx.globalAlpha=(1-dist/LINK)*.16;cx.lineWidth=1;cx.stroke();}}
+    if(dist<LINK){cx.beginPath();cx.moveTo(a.x,a.y);cx.lineTo(b.x,b.y);cx.strokeStyle=col;cx.globalAlpha=(1-dist/LINK)*.15;cx.lineWidth=1;cx.stroke();}}
   cx.globalAlpha=1;}
 function loopB(){drawB(false);braf=requestAnimationFrame(loopB);}
-function startB(){sz();initDots();cancelAnimationFrame(braf); reduced?drawB(true):loopB();}
-addEventListener("resize",()=>{sz();initDots(); drawRadar(radarShown?1:1);});
-addEventListener("pointermove",e=>{mx=(e.clientX/innerWidth-.5)*.6; my=(e.clientY/innerHeight-.5)*.6;});
+function startB(){sz();initDots();cancelAnimationFrame(braf);reduced?drawB(true):loopB();}
+addEventListener("resize",()=>{sz();initDots();drawRadar(curVals);});
+addEventListener("pointermove",e=>{mmx=(e.clientX/innerWidth-.5)*.6;mmy=(e.clientY/innerHeight-.5)*.6;});
 startB();
 
 /* ===================== theme ===================== */
 const root=document.documentElement;
-function curTheme(){const s=root.getAttribute("data-theme"); return s||(matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light");}
-try{const s=localStorage.getItem("bs_theme"); if(s)root.setAttribute("data-theme",s);}catch(e){}
-document.getElementById("themeBtn").addEventListener("click",()=>{const n=curTheme()==="dark"?"light":"dark"; root.setAttribute("data-theme",n);
-  try{localStorage.setItem("bs_theme",n);}catch(e){} drawB(reduced); drawRadar(radarShown?1:1);});
+function curTheme(){return root.getAttribute("data-theme")||"dark";}
+document.getElementById("themeBtn").addEventListener("click",()=>{const n=curTheme()==="dark"?"light":"dark";root.setAttribute("data-theme",n);
+  try{localStorage.setItem("bs_theme",n);}catch(e){} drawB(reduced); drawRadar(curVals);});
 
 /* ===================== clock ===================== */
-function tick(){const d=new Date(); document.getElementById("clock").textContent=d.toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"});}
-tick(); setInterval(tick,10000);
+function tick(){document.getElementById("clock").textContent=new Date().toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"});}
+tick();setInterval(tick,10000);
 
 /* ===================== terminal ===================== */
-const out=document.getElementById("out"), line=document.getElementById("inputline"), cmd=document.getElementById("cmd"), term=document.getElementById("term");
-const history=[]; let hi=-1;
+const out=document.getElementById("out"),line=document.getElementById("inputline"),cmd=document.getElementById("cmd"),term=document.getElementById("term"),chipsEl=document.getElementById("chips"),hintEl=document.getElementById("hint");
+const history=[];let hi=-1;
 function print(html,cls){const d=document.createElement("div");d.className="ln"+(cls?" "+cls:"");d.innerHTML=html;out.appendChild(d);return d;}
 function echoCmd(c){print(`<span class="prompt">brandon@stonesifer ~ $</span> <span class="cmd">${esc(c)}</span>`);}
-function jump(id){const el=document.getElementById(id); if(el)setTimeout(()=>el.scrollIntoView({behavior:reduced?"auto":"smooth",block:"start"}),240);}
+function jump(id){const el=document.getElementById(id);if(el)setTimeout(()=>el.scrollIntoView({behavior:reduced?"auto":"smooth",block:"start"}),240);}
 const NEO=`   ██████╗ ███████╗
    ██╔══██╗██╔════╝
    ██████╔╝███████╗
@@ -513,39 +613,40 @@ const NEO=`   ██████╗ ███████╗
    ██████╔╝███████║
    ╚═════╝ ╚══════╝`;
 function neofetch(){return `<div class="neo"><pre>${NEO}</pre><div class="info">
-<div><b>user</b>@ brandon-stonesifer</div>
+<div><b>name</b>  Brandon Stonesifer</div>
 <div><b>role</b>  ERA Manager · Data Scientist · AI Developer</div>
 <div><b>org</b>   UNC Wilmington</div>
 <div><b>edu</b>   MS Data Science &amp; AI (2026) · 4.0 GPA</div>
 <div><b>svc</b>   Logistics Officer, NC Army National Guard</div>
-<div><b>lang</b>  Python · R · SQL · JavaScript</div>
-<div><b>ai</b>    LLM agents · MCP · RAG · CrewAI · CV</div>
 <div><b>talks</b> 3 delivered · 1 upcoming (REACH 2027)</div>
-<div><b>uptime</b> 10+ yrs leading teams</div>
 </div></div>`;}
 const COMMANDS={
-  help(){return `Available commands:
-  <span class="accent">about  whoami  skills  projects  experience  education</span>
-  <span class="accent">talks  contact  neofetch  ls  theme  matrix  crt  clear</span>
-<span class="muted">↑/↓ history · Tab autocomplete · ⌘K command palette</span>`;},
-  neofetch(){return neofetch();},
-  about(){jump("about");return `Research administration leader + data scientist / AI developer at UNC Wilmington.\n<span class="muted">→ ~/about.md</span>`;},
-  whoami(){return `brandon — ERA Manager @ UNCW · MS Data Science &amp; AI (2026) · Army logistics officer`;},
-  skills(){jump("skills");let s="";SKILLS.forEach(c=>{s+=`<span class="accent">[${c.cat}]</span>\n`;c.items.forEach(([n,v])=>{const f=Math.round(v/5);s+=`  ${n.padEnd(28," ")} <span class="prompt">${"█".repeat(f)}${"░".repeat(20-f)}</span> ${v}%\n`;});});return s+'<span class="muted">→ ~/skills.cfg</span>';},
-  projects(){jump("projects");return "Loaded "+PROJECTS.length+" projects:\n"+PROJECTS.map(p=>`  <span class="accent">▸ ${esc(p.n)}</span> <span class="muted">— ${esc(p.role)}</span>`).join("\n")+'\n<span class="muted">→ ~/projects/</span>';},
-  experience(){jump("experience");return JOBS.map(j=>`<span class="prompt">${j.w.padEnd(16," ")}</span> <span class="accent">${esc(j.t)}</span>\n                 <span class="muted">${esc(j.o)}</span>`).join("\n")+'\n<span class="muted">→ ~/experience.log</span>';},
+  help(){return `Here's what you can do — type one, or just click the buttons:
+  <span class="accent">about</span>       a quick intro
+  <span class="accent">skills</span>      what I'm good at (pick a role!)
+  <span class="accent">projects</span>    things I've built
+  <span class="accent">experience</span>  where I've worked
+  <span class="accent">talks</span>       conference talks
+  <span class="accent">contact</span>     how to reach me
+  <span class="accent">theme</span> · <span class="accent">crt</span> · <span class="accent">matrix</span> · <span class="accent">clear</span>   (for fun)
+<span class="muted">Tip: press ⌘K (or Ctrl+K) to search everything.</span>`;},
+  about(){jump("about");return `Research administration leader + data scientist / AI developer at UNC Wilmington.\n<span class="muted">↓ scrolling to About</span>`;},
+  whoami(){return `Brandon — ERA Manager @ UNCW · MS Data Science &amp; AI (2026) · Army logistics officer`;},
+  skills(){jump("skills");return `Opening Skills — <span class="accent">pick a role</span> to see what matters most for it.\n<span class="muted">↓ scrolling to Skills</span>`;},
+  projects(){jump("projects");return "Loaded "+PROJECTS.length+" projects:\n"+PROJECTS.map(p=>`  <span class="accent">▸ ${esc(p.n)}</span> <span class="muted">— ${esc(p.role)}</span>`).join("\n")+'\n<span class="muted">↓ scrolling to Projects</span>';},
+  experience(){jump("experience");return JOBS.map(j=>`<span class="prompt">${j.w.padEnd(16," ")}</span> <span class="accent">${esc(j.t)}</span>`).join("\n")+'\n<span class="muted">↓ scrolling to Experience</span>';},
   education(){return `<span class="accent">M.S. Data Science &amp; Artificial Intelligence</span> — UNC Wilmington <span class="muted">(Dec 2026, 4.0 GPA)</span>
 <span class="accent">M.S. Criminal Justice</span> — East Carolina University <span class="muted">(2022)</span>
 <span class="accent">B.A. Psychology</span> — Appalachian State University <span class="muted">(2018)</span>`;},
-  talks(){jump("talks");return TALKS.map(t=>`<span class="prompt">${t.y.padEnd(9," ")}</span> ${esc(t.t)} <span class="muted">${t.up?"[upcoming]":""}</span>\n          <span class="muted">${esc(t.v)}</span>`).join("\n")+'\n<span class="muted">→ ~/presentations.list</span>';},
+  talks(){jump("talks");return TALKS.map(t=>`<span class="prompt">${t.y.padEnd(9," ")}</span> ${esc(t.t)} <span class="muted">${t.up?"[upcoming]":""}</span>`).join("\n")+'\n<span class="muted">↓ scrolling to Speaking</span>';},
   contact(){jump("contact");return `email    <a href="mailto:${EMAIL}">${EMAIL}</a>
-linkedin <a href="https://www.linkedin.com/in/lt-brandon-stonesifer-m-sc-53652b351/" target="_blank" rel="noopener">/in/lt-brandon-stonesifer-m-sc</a>
-github   <a href="https://github.com/Stone0012" target="_blank" rel="noopener">github.com/Stone0012</a>
-location Wilmington, NC`;},
-  ls(){return '<span class="accent">about.md  skills.cfg  projects/  experience.log  presentations.list  contact.sh</span>';},
-  theme(){document.getElementById("themeBtn").click();return '<span class="ok">✔ theme toggled</span>';},
+linkedin <a href="${LINKEDIN}" target="_blank" rel="noopener">/in/lt-brandon-stonesifer-m-sc</a>
+github   <a href="${GITHUB}" target="_blank" rel="noopener">github.com/Stone0012</a>`;},
+  neofetch(){return neofetch();},
+  ls(){return '<span class="accent">about  skills  projects  experience  talks  contact</span>';},
+  theme(){document.getElementById("themeBtn").click();return '<span class="ok">✔ theme switched</span>';},
   crt(){document.getElementById("crtBtn").click();return '<span class="ok">✔ retro mode toggled</span>';},
-  matrix(){startMatrix();return '<span class="ok">entering the matrix… (press exit or Esc)</span>';},
+  matrix(){startMatrix();return '<span class="ok">entering the matrix… (press Esc to exit)</span>';},
   clear(){out.innerHTML="";return null;},
   "sudo hire-brandon"(){return `<span class="ok">[sudo] authenticating... ✔ access granted</span>
 <span class="accent">Excellent choice.</span> Routing to the hiring pipeline →
@@ -555,117 +656,111 @@ location Wilmington, NC`;},
 Run <span class="accent">contact</span> to start the conversation.`;},
   coffee(){return "☕ brewing... <span class='muted'>ERROR 418: I'm a teapot. But the code still compiles.</span>";},
 };
-const ALIASES={"?":"help",man:"help",info:"about",work:"experience",exp:"experience",proj:"projects",edu:"education",email:"contact",cls:"clear",resume:"contact",hire:"sudo hire-brandon",fetch:"neofetch"};
+const ALIASES={"?":"help",man:"help",info:"about",work:"experience",exp:"experience",proj:"projects",edu:"education",email:"contact",cls:"clear",resume:"contact",hire:"sudo hire-brandon",fetch:"neofetch",whoami:"whoami"};
 const COMPLETE=[...Object.keys(COMMANDS),...Object.keys(ALIASES)];
-function run(raw){const c=raw.trim(); if(!c)return; history.unshift(c); hi=-1; echoCmd(c);
-  const key=ALIASES[c.toLowerCase()]||c.toLowerCase(); const fn=COMMANDS[key];
-  if(fn){const r=fn(); if(r!==null)print(r);} else print(`command not found: <span class="cmd">${esc(c)}</span> — type <span class="accent">help</span>`,"err");
+function run(raw){const c=raw.trim();if(!c)return;history.unshift(c);hi=-1;echoCmd(c);
+  const key=ALIASES[c.toLowerCase()]||c.toLowerCase();const fn=COMMANDS[key];
+  if(fn){const r=fn();if(r!==null)print(r);}else print(`Hmm, I don't know "<span class="cmd">${esc(c)}</span>" — try <span class="accent">help</span>, or click a button above.`,"err");
   out.scrollTop=out.scrollHeight;}
 cmd.addEventListener("keydown",e=>{
   if(e.key==="Enter"){run(cmd.value);cmd.value="";}
-  else if(e.key==="Tab"){e.preventDefault();const v=cmd.value.trim().toLowerCase(); if(v){const m=COMPLETE.find(x=>x.startsWith(v)); if(m)cmd.value=m;}}
+  else if(e.key==="Tab"){e.preventDefault();const v=cmd.value.trim().toLowerCase();if(v){const m=COMPLETE.find(x=>x.startsWith(v));if(m)cmd.value=m;}}
   else if(e.key==="ArrowUp"){if(history.length){hi=Math.min(hi+1,history.length-1);cmd.value=history[hi]||"";e.preventDefault();}}
   else if(e.key==="ArrowDown"){if(hi>0){hi--;cmd.value=history[hi]||"";}else{hi=-1;cmd.value="";}e.preventDefault();}});
-term.addEventListener("click",()=>{if(!line.hidden)cmd.focus();});
+term.addEventListener("click",e=>{if(e.target.closest("a"))return; if(!line.hidden)cmd.focus();});
+/* clickable command chips */
+const CHIPS=[["about","About"],["skills","Skills"],["projects","Projects"],["experience","Experience"],["contact","Contact"]];
+function buildChips(){
+  chipsEl.innerHTML=CHIPS.map(([c,l])=>`<button class="chip" data-cmd="${c}">${l}</button>`).join("")+
+    `<button class="chip fun" data-cmd="sudo hire-brandon">🎉 hire me</button>`;
+  chipsEl.addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;cmd.value="";run(b.dataset.cmd);});
+}
+buildChips();
 
 /* ===================== boot ===================== */
-const bootlog=document.getElementById("bootlog"), bootEl=document.getElementById("boot");
+const bootlog=document.getElementById("bootlog"),bootEl=document.getElementById("boot");
 const BOOT=[
-  '<span class="m">StonesiferOS 2.0.26 (kernel 6.18-research)</span>',
+  '<span class="m">StonesiferOS v3 (kernel 6.18-research)</span>',
   '<span class="g">[ OK ]</span> POST: cpu, memory, curiosity ....... <span class="g">passed</span>',
   '<span class="g">[ OK ]</span> mounting <span class="a">/research</span> (InfoEd/OSPREY) ....... <span class="g">ok</span>',
-  '<span class="g">[ OK ]</span> loading <span class="a">ai-modules</span> [ mcp · rag · crewai · vision ]',
+  '<span class="g">[ OK ]</span> loading <span class="a">ai-modules</span> [ agents · rag · vision ]',
   '<span class="g">[ OK ]</span> starting <span class="a">analytics.d</span> [ python · r · sql · powerbi ]',
-  '<span class="g">[ OK ]</span> verifying credentials [ MS Data Science &amp; AI · 4.0 GPA ]',
-  '<span class="p">::</span> initializing user profile <span class="a">brandon@stonesifer</span> ...',
+  '<span class="p">::</span> initializing profile <span class="a">brandon@stonesifer</span> ...',
 ];
-function typeBoot(i){
-  if(i>=BOOT.length){progressBoot();return;}
+function typeBoot(i){if(i>=BOOT.length){progressBoot();return;}
   const d=document.createElement("div");d.className="l";d.innerHTML=BOOT[i];bootlog.appendChild(d);
-  setTimeout(()=>typeBoot(i+1), reduced?0:180);
-}
-function progressBoot(){
-  const wrap=document.getElementById("bootbarwrap"),bar=document.getElementById("bootbar"),pct=document.getElementById("bootpct");
-  wrap.hidden=false; let p=0;
-  const iv=setInterval(()=>{p+=Math.random()*16+7; if(p>=100){p=100;clearInterval(iv);setTimeout(endBoot,420);} bar.style.width=p+"%"; pct.textContent=Math.floor(p)+"%";}, reduced?10:90);
-}
+  setTimeout(()=>typeBoot(i+1),reduced?0:170);}
+function progressBoot(){const wrap=document.getElementById("bootbarwrap"),bar=document.getElementById("bootbar"),pct=document.getElementById("bootpct");
+  wrap.hidden=false;let p=0;const iv=setInterval(()=>{p+=Math.random()*17+8;if(p>=100){p=100;clearInterval(iv);setTimeout(endBoot,380);}bar.style.width=p+"%";pct.textContent=Math.floor(p)+"%";},reduced?10:85);}
 let booted=false;
-function endBoot(){ if(booted)return; booted=true;
-  bootEl.classList.add("done"); setTimeout(()=>bootEl.remove(),650);
-  line.hidden=false; print(neofetch()); print('<span class="muted">type <span class="accent">help</span> to explore, or press ⌘K</span>');
+function endBoot(){if(booted)return;booted=true;
+  bootEl.classList.add("done");setTimeout(()=>bootEl.remove(),650);
+  line.hidden=false;chipsEl.hidden=false;hintEl.hidden=false;
+  print('<div class="welcome">👋 <b>Welcome!</b> This is an interactive résumé built like a tiny operating system. No tech skills needed — <b>click a button below</b>, or just scroll to read. (Curious folks: type a command or press ⌘K.)</div>');
+  print(neofetch());
   try{cmd.focus({preventScroll:true});}catch(e){}
-  // reveal anything already in view
-  document.querySelectorAll(".reveal").forEach(el=>{const r=el.getBoundingClientRect(); if(r.top<innerHeight){el.classList.add("in");}});
+  document.querySelectorAll(".reveal").forEach(el=>{const r=el.getBoundingClientRect();if(r.top<innerHeight){el.classList.add("in"); if(el.id==="skills"&&!radarShown){radarShown=true;el.querySelectorAll(".bar i").forEach(b=>b.style.transform="scaleX(1)");tweenRadar(ROLES[0].radar);}}});
 }
 document.getElementById("skipBoot").addEventListener("click",endBoot);
-if(reduced){ BOOT.forEach(b=>{const d=document.createElement("div");d.className="l";d.innerHTML=b;bootlog.appendChild(d);}); endBoot(); }
+if(reduced){BOOT.forEach(b=>{const d=document.createElement("div");d.className="l";d.innerHTML=b;bootlog.appendChild(d);});endBoot();}
 else typeBoot(0);
 
 /* ===================== command palette ===================== */
-const pal=document.getElementById("palette"), palInput=document.getElementById("palInput"), palList=document.getElementById("palList");
+const pal=document.getElementById("palette"),palInput=document.getElementById("palInput"),palList=document.getElementById("palList");
 const PAL_ITEMS=[
   {k:"→",l:"Go to About",act:()=>jump("about")},{k:"→",l:"Go to Skills",act:()=>jump("skills")},
   {k:"→",l:"Go to Projects",act:()=>jump("projects")},{k:"→",l:"Go to Experience",act:()=>jump("experience")},
   {k:"→",l:"Go to Talks",act:()=>jump("talks")},{k:"→",l:"Go to Contact",act:()=>jump("contact")},
-  {k:"$",l:"Run: neofetch",d:"cmd",act:()=>{scrollTo({top:0,behavior:"smooth"});run("neofetch");}},
-  {k:"$",l:"Run: skills",d:"cmd",act:()=>run("skills")},
-  {k:"$",l:"Run: sudo hire-brandon",d:"cmd",act:()=>{scrollTo({top:0,behavior:"smooth"});run("sudo hire-brandon");}},
-  {k:"◐",l:"Toggle theme",act:()=>document.getElementById("themeBtn").click()},
+  {k:"◆",l:"Skills as: Research Administrator",d:"role",act:()=>{jump("skills");selectRole("ra");}},
+  {k:"◆",l:"Skills as: Data Scientist",d:"role",act:()=>{jump("skills");selectRole("ds");}},
+  {k:"◆",l:"Skills as: AI Developer",d:"role",act:()=>{jump("skills");selectRole("ai");}},
+  {k:"$",l:"Run: sudo hire-brandon",d:"fun",act:()=>{scrollTo({top:0,behavior:"smooth"});run("sudo hire-brandon");}},
+  {k:"◐",l:"Toggle light / dark theme",act:()=>document.getElementById("themeBtn").click()},
   {k:"▚",l:"Toggle CRT / retro mode",act:()=>document.getElementById("crtBtn").click()},
-  {k:"◉",l:"Enter the Matrix",act:()=>startMatrix()},
+  {k:"◉",l:"Enter the Matrix",d:"fun",act:()=>startMatrix()},
   {k:"✉",l:"Copy email",act:()=>document.getElementById("emailBtn").click()},
-  {k:"↗",l:"Open LinkedIn",act:()=>window.open("https://www.linkedin.com/in/lt-brandon-stonesifer-m-sc-53652b351/","_blank")},
-  {k:"↗",l:"Open GitHub",act:()=>window.open("https://github.com/Stone0012","_blank")},
+  {k:"↗",l:"Open LinkedIn",act:()=>window.open(LINKEDIN,"_blank")},
+  {k:"↗",l:"Open GitHub",act:()=>window.open(GITHUB,"_blank")},
 ];
-let palSel=0, palFiltered=PAL_ITEMS;
+let palSel=0,palFiltered=PAL_ITEMS;
 function renderPal(){palList.innerHTML=palFiltered.map((it,i)=>`<div class="pal-item ${i===palSel?'sel':''}" data-i="${i}"><span class="pi">${it.k}</span><span>${esc(it.l)}</span>${it.d?`<span class="pd">${it.d}</span>`:''}</div>`).join("")||'<div class="pal-item"><span class="pd">no matches</span></div>';}
 function openPal(){pal.classList.add("open");palInput.value="";palFiltered=PAL_ITEMS;palSel=0;renderPal();setTimeout(()=>palInput.focus(),30);}
 function closePal(){pal.classList.remove("open");}
-function doPal(i){const it=palFiltered[i]; if(it){closePal(); it.act();}}
+function doPal(i){const it=palFiltered[i];if(it){closePal();it.act();}}
 document.getElementById("palBtn").addEventListener("click",openPal);
-palInput.addEventListener("input",()=>{const q=palInput.value.toLowerCase(); palFiltered=PAL_ITEMS.filter(it=>it.l.toLowerCase().includes(q)); palSel=0; renderPal();});
+palInput.addEventListener("input",()=>{const q=palInput.value.toLowerCase();palFiltered=PAL_ITEMS.filter(it=>it.l.toLowerCase().includes(q));palSel=0;renderPal();});
 palInput.addEventListener("keydown",e=>{
   if(e.key==="ArrowDown"){palSel=Math.min(palSel+1,palFiltered.length-1);renderPal();e.preventDefault();}
   else if(e.key==="ArrowUp"){palSel=Math.max(palSel-1,0);renderPal();e.preventDefault();}
-  else if(e.key==="Enter"){doPal(palSel);} else if(e.key==="Escape"){closePal();}});
-palList.addEventListener("click",e=>{const it=e.target.closest(".pal-item"); if(it&&it.dataset.i!=null)doPal(+it.dataset.i);});
+  else if(e.key==="Enter"){doPal(palSel);}else if(e.key==="Escape"){closePal();}});
+palList.addEventListener("click",e=>{const it=e.target.closest(".pal-item");if(it&&it.dataset.i!=null)doPal(+it.dataset.i);});
 pal.addEventListener("click",e=>{if(e.target===pal)closePal();});
-addEventListener("keydown",e=>{
-  if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==="k"){e.preventDefault(); pal.classList.contains("open")?closePal():openPal();}
-  else if(e.key==="Escape"){closePal();}});
+addEventListener("keydown",e=>{if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==="k"){e.preventDefault();pal.classList.contains("open")?closePal():openPal();}else if(e.key==="Escape"){closePal();}});
 
-/* ===================== CRT ===================== */
+/* ===================== CRT / matrix ===================== */
 document.getElementById("crtBtn").addEventListener("click",()=>document.body.classList.toggle("crt"));
-
-/* ===================== matrix ===================== */
-const mEl=document.getElementById("matrix"), mc=document.getElementById("mcanvas"), mcx=mc.getContext("2d");
-let mRAF, mCols;
-function startMatrix(){mEl.classList.add("on"); mc.width=innerWidth; mc.height=innerHeight;
-  const fs=16; mCols=Array(Math.floor(mc.width/fs)).fill(0);
-  cancelAnimationFrame(mRAF);
-  (function draw(){ mcx.fillStyle="rgba(0,0,0,.08)"; mcx.fillRect(0,0,mc.width,mc.height);
-    mcx.fillStyle=cssvar("--accent")||"#2dd4bf"; mcx.font=fs+"px monospace";
-    mCols.forEach((y,i)=>{const ch=String.fromCharCode(0x30A0+Math.random()*96); mcx.fillText(ch,i*fs,y*fs);
-      mCols[i]=(y*fs>mc.height&&Math.random()>.975)?0:y+1;});
-    if(mEl.classList.contains("on"))mRAF=requestAnimationFrame(draw); })();}
+const mEl=document.getElementById("matrix"),mc=document.getElementById("mcanvas"),mcx=mc.getContext("2d");
+let mRAF,mCols;
+function startMatrix(){mEl.classList.add("on");mc.width=innerWidth;mc.height=innerHeight;const fs=16;mCols=Array(Math.floor(mc.width/fs)).fill(0);cancelAnimationFrame(mRAF);
+  (function draw(){mcx.fillStyle="rgba(0,0,0,.08)";mcx.fillRect(0,0,mc.width,mc.height);mcx.fillStyle=cssvar("--accent")||"#2dd4bf";mcx.font=fs+"px monospace";
+    mCols.forEach((y,i)=>{const ch=String.fromCharCode(0x30A0+Math.random()*96);mcx.fillText(ch,i*fs,y*fs);mCols[i]=(y*fs>mc.height&&Math.random()>.975)?0:y+1;});
+    if(mEl.classList.contains("on"))mRAF=requestAnimationFrame(draw);})();}
 function stopMatrix(){mEl.classList.remove("on");cancelAnimationFrame(mRAF);}
 document.getElementById("matrixX").addEventListener("click",stopMatrix);
 addEventListener("keydown",e=>{if(e.key==="Escape")stopMatrix();});
 
-/* ===================== scroll progress ===================== */
+/* ===================== scroll progress + konami ===================== */
 const prog=document.getElementById("progress");
-addEventListener("scroll",()=>{const h=document.documentElement.scrollHeight-innerHeight; prog.style.width=(h>0?scrollY/h*100:0)+"%";},{passive:true});
-
-/* ===================== konami ===================== */
-let konami=[], SEQ="38,38,40,40,37,39,37,39,66,65";
-addEventListener("keydown",e=>{konami.push(e.keyCode);konami=konami.slice(-10); if(konami.join(",")===SEQ){startMatrix();}});
+addEventListener("scroll",()=>{const h=document.documentElement.scrollHeight-innerHeight;prog.style.width=(h>0?scrollY/h*100:0)+"%";},{passive:true});
+let konami=[],SEQ="38,38,40,40,37,39,37,39,66,65";
+addEventListener("keydown",e=>{konami.push(e.keyCode);konami=konami.slice(-10);if(konami.join(",")===SEQ)startMatrix();});
 
 /* ===================== copy email ===================== */
 document.getElementById("emailBtn").addEventListener("click",async e=>{const b=e.currentTarget;
   try{await navigator.clipboard.writeText(EMAIL);b.innerHTML='<span class="k">✔</span> copied!';}
-  catch(err){b.innerHTML='<span class="k">$</span> '+EMAIL;}
-  setTimeout(()=>{b.innerHTML='<span class="k">$</span> copy email';},1800);});
+  catch(err){b.innerHTML='<span class="k">✉</span> '+EMAIL;}
+  setTimeout(()=>{b.innerHTML='<span class="k">✉</span> copy email';},1800);});
 
-/* draw radar once so it's not blank before scroll (light state) */
-drawRadar(1); radarShown=false;
+/* first paint of radar (empty→filled happens on scroll) */
+drawRadar(curVals);
 </script>
