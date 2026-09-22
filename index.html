@@ -217,10 +217,49 @@
   #matrix.on{display:block}
   #matrix .x{position:absolute; top:14px; right:16px; z-index:2; color:#4ade80; font-family:var(--mono); font-size:12px; border:1px solid #1f3a37; border-radius:6px; padding:6px 12px; cursor:pointer; background:rgba(0,0,0,.4)}
 
+  /* ===================== details button + modal ===================== */
+  .det-btn{margin-top:8px; font-family:var(--mono); font-size:11.5px; color:var(--accent); background:transparent; border:1px solid var(--border); border-radius:99px; padding:4px 11px; cursor:pointer; transition:.15s}
+  .det-btn:hover{border-color:var(--accent); background:var(--accent-soft)}
+  #modal{position:fixed; inset:0; z-index:9700; display:none; align-items:center; justify-content:center; background:rgba(3,6,10,.55); backdrop-filter:blur(5px); padding:20px}
+  #modal.open{display:flex}
+  .modal-card{width:min(600px,96vw); max-height:82vh; overflow:hidden; display:flex; flex-direction:column; background:var(--surface); border:1px solid var(--border); border-radius:16px; box-shadow:0 40px 90px -30px rgba(0,0,0,.6)}
+  .modal-bar{display:flex; align-items:center; gap:10px; padding:12px 16px; background:var(--chrome); border-bottom:1px solid var(--border)}
+  .modal-bar .dots i{cursor:pointer}
+  .modal-bar .mt{font-family:var(--mono); font-size:12.5px; color:var(--muted); margin-left:2px; flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .modal-x{background:transparent; border:none; color:var(--muted); font-size:18px; cursor:pointer; line-height:1; padding:0 4px}
+  .modal-x:hover{color:var(--accent)}
+  .modal-body{padding:20px 22px; overflow-y:auto}
+  .modal-body h3{margin:0; font-size:19px; font-family:var(--sans)}
+  .modal-body .msub{font-family:var(--mono); font-size:12.5px; color:var(--accent); margin:2px 0 2px}
+  .modal-body .mwhen{font-family:var(--mono); font-size:12px; color:var(--muted); margin-bottom:14px}
+  .modal-body ul{margin:0; padding-left:20px; display:flex; flex-direction:column; gap:9px}
+  .modal-body li{font-size:14.5px; line-height:1.55}
+  .modal-body li::marker{color:var(--accent)}
+
+  /* ===================== credentials ===================== */
+  .cred-grid{display:grid; grid-template-columns:1fr 1fr; gap:24px}
+  @media (max-width:640px){ .cred-grid{grid-template-columns:1fr} }
+  .cred h3{font-family:var(--mono); font-size:12.5px; color:var(--accent); margin:0 0 10px; letter-spacing:.02em}
+  .edu-item{padding:9px 11px; border:1px solid var(--border); border-radius:10px; margin-bottom:8px; cursor:pointer; transition:.15s; background:var(--surface2)}
+  .edu-item:hover{border-color:var(--accent); transform:translateX(2px)}
+  .edu-item .ed{font-weight:600; font-size:14px}
+  .edu-item .eo{font-family:var(--mono); font-size:11.5px; color:var(--muted)}
+  .edu-item .ew{font-family:var(--mono); font-size:11px; color:var(--accent)}
+  .certlist{display:flex; flex-direction:column; gap:6px}
+  .cert{display:flex; justify-content:space-between; gap:10px; font-size:13px; padding:5px 0; border-bottom:1px dashed var(--border)}
+  .cert:last-child{border-bottom:none}
+  .cert .cy{font-family:var(--mono); font-size:11.5px; color:var(--prompt); white-space:nowrap}
+  .affil{display:flex; flex-wrap:wrap; gap:7px; margin-top:2px}
+  .achip{font-family:var(--mono); font-size:11.5px; color:var(--muted); background:var(--surface2); border:1px solid var(--border); border-radius:99px; padding:5px 11px}
+
+  /* ===================== hire-me rain ===================== */
+  #rain{position:fixed; inset:0; z-index:9400; pointer-events:none; display:none}
+  #rain.on{display:block}
+
   @media (prefers-reduced-motion:reduce){
     html{scroll-behavior:auto}
     .blink,.job.cur::before,body.crt::after{animation:none}
-    .bar i,.card,body.js .reveal{transition:none}
+    .bar i,.card,body.js .reveal,.edu-item{transition:none}
     body.js .reveal{opacity:1; transform:none}
   }
 </style>
@@ -249,7 +288,7 @@ catch(e){document.documentElement.setAttribute('data-theme','dark');}</script>
     <span class="mb-logo"><span class="c">◆</span> StonesiferOS</span>
     <nav class="mb-menu" aria-label="Sections">
       <a href="#about">About</a><a href="#skills">Skills</a><a href="#projects">Projects</a>
-      <a href="#experience">Experience</a><a href="#talks">Talks</a><a href="#contact">Contact</a>
+      <a href="#experience">Experience</a><a href="#credentials">Credentials</a><a href="#talks">Talks</a><a href="#contact">Contact</a>
     </nav>
   </div>
   <div class="mb-right">
@@ -322,6 +361,26 @@ catch(e){document.documentElement.setAttribute('data-theme','dark');}</script>
     </div>
   </section>
 
+  <!-- CREDENTIALS -->
+  <section class="win reveal" id="credentials">
+    <div class="win-bar"><div class="dots"><i></i><i></i><i></i></div><div class="win-title">~/credentials</div></div>
+    <div class="win-body">
+      <div class="hdr"><h2>Education &amp; Credentials</h2><div class="sub">Degrees, certifications, and where I serve. <span class="cue">Click a degree</span> for details.</div></div>
+      <div class="cred-grid">
+        <div class="cred">
+          <h3>Education</h3>
+          <div id="eduList"></div>
+          <h3 style="margin-top:18px">Affiliations &amp; Committees</h3>
+          <div class="affil" id="affilList"></div>
+        </div>
+        <div class="cred">
+          <h3>Certifications &amp; Professional Development</h3>
+          <div class="certlist" id="certList"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <!-- TALKS -->
   <section class="win reveal" id="talks">
     <div class="win-bar"><div class="dots"><i></i><i></i><i></i></div><div class="win-title">~/speaking</div></div>
@@ -346,7 +405,7 @@ catch(e){document.documentElement.setAttribute('data-theme','dark');}</script>
     </div>
   </section>
 
-  <div class="foot">StonesiferOS v3 · built with <span class="c">&lt;/&gt;</span> · press <span class="c">⌘K</span> to search · © <span id="yr"></span> Brandon Stonesifer</div>
+  <div class="foot">StonesiferOS v4 · built with <span class="c">&lt;/&gt;</span> · press <span class="c">⌘K</span> to search · © <span id="yr"></span> Brandon Stonesifer</div>
 </div>
 
 <!-- ===================== COMMAND PALETTE ===================== -->
@@ -360,6 +419,17 @@ catch(e){document.documentElement.setAttribute('data-theme','dark');}</script>
 
 <!-- ===================== MATRIX ===================== -->
 <div id="matrix"><button class="x" id="matrixX">exit ✕</button><canvas id="mcanvas"></canvas></div>
+
+<!-- ===================== HIRE-ME RAIN ===================== -->
+<canvas id="rain" aria-hidden="true"></canvas>
+
+<!-- ===================== DETAIL MODAL ===================== -->
+<div id="modal" role="dialog" aria-modal="true" aria-label="Details">
+  <div class="modal-card">
+    <div class="modal-bar"><div class="dots"><i></i><i></i><i></i></div><div class="mt" id="modalTitle">details</div><button class="modal-x" id="modalX" aria-label="Close">✕</button></div>
+    <div class="modal-body" id="modalBody"></div>
+  </div>
+</div>
 
 <script>
 /* ===================== data ===================== */
@@ -409,14 +479,72 @@ const PROJECTS=[
    d:"A narrowly scoped, admin-facing agent that surfaces and cites the right policy or sponsor guidance — built to support, not replace, administrators, with an honest evaluation of accuracy and failure modes."},
 ];
 const JOBS=[
-  {t:"Electronic Research Administration Manager",o:"UNC Wilmington",w:"2022 — present",cur:true,
-   d:"Lead the OSPREY (InfoEd) & InfoReady ecosystem; project-managed 11 module implementations; sole responder for 450+ TeamDynamix service requests across 42 departments; build analytics in SQL, Python, R & Power BI."},
-  {t:"Logistics Officer",o:"NC Army National Guard",w:"2014 — present",cur:true,
-   d:"Liaison Officer for Rutherford County during the Hurricane Helene response — directed 150 soldiers across a dozen missions and coordinated 500+ pallets of supplies with FEMA, FBI, and county leadership in 10 days."},
-  {t:"Graduate Assistant",o:"East Carolina University",w:"2022 — 2023",cur:false,
-   d:"Research on law-enforcement/community interactions; data collection & analysis; partnered with the SBI on cold-case review."},
-  {t:"Senior Research Analyst",o:"VIGILINT",w:"2020 — 2022",cur:false,
-   d:"Trained and managed 20 analysts; delivered medical intelligence and PACE planning for high-value clients worldwide; built forecasting models and revised client SOPs."},
+  {t:"Electronic Research Administration Manager",o:"UNC Wilmington",loc:"Wilmington, NC",w:"2022 — present",cur:true,
+   d:"Lead the OSPREY (InfoEd) & InfoReady ecosystem; project-managed 11 module implementations; sole responder for 450+ TeamDynamix service requests across 42 departments; build analytics in SQL, Python, R & Power BI.",
+   det:[
+     "Spearhead and manage all back-end processes for proposal submissions — accuracy, compliance, and adherence to institutional and funding-agency guidelines.",
+     "Administer the InfoEd/OSPREY and InfoReady platforms within Research & Innovation under Dr. Stuart Borrett.",
+     "Serve as project manager for the implementation of 11 modules, managing 300,000+ dollars in invoices.",
+     "Overhauled and developed the ERA position into a management role responsible for hiring, developing, and managing employees.",
+     "Apply R, Python, Excel, Power BI, and Tableau to analyze categorical variables and surface trends for continuous process improvement.",
+     "Built ticketing systems for InfoEd/OSPREY with ITS, increasing campus support access by 100%.",
+     "Sole responder for the OSPREY/InfoReady support queue in TeamDynamix — 450+ service requests from 119 requestors across 42 departments (~98% closure).",
+     "Developed and documented standard operating procedures (SOPs) for proposal submission.",
+     "Serve as Data Custodian, developing and implementing data security with the Data Steward.",
+     "Elected to Staff Senate and the Provost Advisory Council; voted Chair of the Scholarship Committee in year one.",
+   ]},
+  {t:"Logistics Officer",o:"NC Army National Guard",loc:"Charlotte, NC",w:"2014 — present",cur:true,
+   d:"Liaison Officer for Rutherford County during the Hurricane Helene response — directed 150 soldiers across a dozen missions and coordinated 500+ pallets of supplies with FEMA, FBI, and county leadership in 10 days.",
+   det:[
+     "Served as Liaison Officer in Charge of Rutherford County during the Hurricane Helene response effort.",
+     "Responsible for 150 soldiers conducting a dozen+ missions: search & rescue, logistics, route clearance, recon & assessment, and debris cleanup.",
+     "Led the centralization, organization, and distribution of 500+ pallets of supplies in 10 days.",
+     "Coordinated across the FBI, Sheriff's Office, FEMA, EMT, EMS, Forest Service, and county leadership to accomplish missions.",
+     "Coordinated with the Air National Guard and Samaritan's Purse to deliver 30 generators, 10 drums of fuel, and 20 pallets of supplies by helicopter.",
+     "Responsible for the completion, tracking, and reporting of all missions and metrics to stakeholders across North Carolina.",
+   ]},
+  {t:"Graduate Assistant",o:"East Carolina University",loc:"Greenville, NC",w:"2022 — 2023",cur:false,
+   d:"Research on law-enforcement/community interactions; data collection & analysis; partnered with the SBI on cold-case review.",
+   det:[
+     "Contributed to research examining law-enforcement interactions with the community, focused on youth relationships and impact on crime statistics.",
+     "Assisted in data collection, analysis, and interpretation alongside Dr. Sara Bryson and the research team.",
+     "Collaborated with the State Bureau of Investigation to review and solve cold cases, assessing evidence and behavioral patterns.",
+     "Applied forensic-psychology concepts to real-world investigative scenarios.",
+   ]},
+  {t:"Senior Research Analyst",o:"VIGILINT",loc:"Raleigh, NC",w:"2020 — 2022",cur:false,
+   d:"Trained and managed 20 analysts; delivered medical intelligence and PACE planning for high-value clients worldwide; built forecasting models and revised client SOPs.",
+   det:[
+     "Responsible for training, hiring, and management of 20 analysts.",
+     "Gathered and reported medical intelligence to support government and commercial clients under limited supervision.",
+     "Entrusted to solve complex worldwide medical emergencies for high-value clients, including constructing and briefing PACE plans.",
+     "Designed plans to improve operations; created models to forecast quantitative and comparative evaluations of business solutions.",
+     "Identified and analyzed project risks and developed mitigation strategies; revised client SOPs to improve response time.",
+     "Provided Tier 1 support and partnered with senior executives on customized client-support campaigns.",
+   ]},
+  {t:"Undergraduate Research Assistant",o:"Appalachian State University",loc:"Boone, NC",w:"2016 — 2018",cur:false,
+   d:"Gathered and analyzed research data, built visualizations in R, and supported survey design on emotion and memory recall.",
+   det:[
+     "Gathered, arranged, and corrected research data to create representative graphs and charts; interpreted findings and made recommendations.",
+     "Analyzed statistical data using modern and traditional methods (R); tracked key metrics and built data models.",
+     "Supported the design and implementation of survey instruments studying the relationship between emotions and memory recall.",
+   ]},
+];
+const EDU=[
+  {d:"M.S., Data Science & Artificial Intelligence",o:"UNC Wilmington",w:"Expected Dec 2026",det:["4.0 GPA.","Focus on machine learning, AI systems, and applied data science."]},
+  {d:"M.S., Criminal Justice",o:"East Carolina University",w:"2022",det:["3.5 GPA; emphasis on research, program evaluation, and policy development.","Completed professional development in the NCSBI Cold Case Program."]},
+  {d:"B.A., Psychology",o:"Appalachian State University",w:"2018",det:["3.0 GPA; minors in Sociology and Biology; coursework in French."]},
+];
+const CERTS=[
+  ["Secret Security Clearance","2014"],["Member, Int'l Society of Logistics (SOLE)","2022"],
+  ["Logistics Management — Army Logistics University","2022"],["Commissioned Officer (OCS) — NC Military Academy","2021"],
+  ["Engineering — U.S. Army Combat Engineer School","2015"],["Visualization for Data Science Using R","2023"],
+  ["Effective Data Visualization (Tableau, Flourish…)","2023"],["Advanced Visualization in R","2023"],
+  ["CITI — Social/Behavioral Research","2024"],["CITI — Responsible Conduct of Research","2024"],["CITI — IPS Researchers","2024"],
+];
+const AFFIL=[
+  "Research & Innovation Leadership Council","OSPREY Steering Committee","InfoReady Leadership Council",
+  "Watermark Faculty Success Innovators Committee","Data Security Task Force","Staff Senate — Chair, Scholarship Committee",
+  "Staff Priorities Committee","Provost Advisory Council","Military Officers Association of America","Army Engineer Association",
 ];
 const TALKS=[
   {y:"May 2027",t:"Build Your Own Agent: Role-Specific AI Assistants for Research Administration",v:"Research Analytics Summit (REACH)",up:true},
@@ -499,16 +627,59 @@ function renderProjects(){
     document.querySelectorAll(".card").forEach(c=>{const s=b.dataset.f==="All"||c.dataset.tags.split("|").includes(b.dataset.f); c.classList.toggle("hide",!s);});});
   attachTilt();
 }
-function renderTimeline(){document.getElementById("timeline").innerHTML=JOBS.map(j=>`
+function renderTimeline(){
+  const tl=document.getElementById("timeline");
+  tl.innerHTML=JOBS.map((j,i)=>`
   <div class="job ${j.cur?'cur':''}"><div class="jh"><span class="title">${esc(j.t)}</span><span class="when">${esc(j.w)}</span></div>
-  <div class="org">${esc(j.o)}</div><p>${esc(j.d)}</p></div>`).join("");}
+  <div class="org">${esc(j.o)}${j.loc?' · '+esc(j.loc):''}</div><p>${esc(j.d)}</p>
+  ${j.det?`<button class="det-btn" data-job="${i}" data-tip="See the full accomplishments from my CV.">▸ details</button>`:''}</div>`).join("");
+  tl.addEventListener("click",e=>{const b=e.target.closest(".det-btn");if(!b)return;const j=JOBS[+b.dataset.job];
+    openModal(j.t, esc(j.o)+(j.loc?' · '+esc(j.loc):'')+' &nbsp;·&nbsp; '+esc(j.w), '<ul>'+j.det.map(x=>`<li>${esc(x)}</li>`).join('')+'</ul>');});
+}
+function renderCredentials(){
+  const el=document.getElementById("eduList");
+  el.innerHTML=EDU.map((e,i)=>`<div class="edu-item" data-edu="${i}" data-tip="Click for details."><div class="ed">${esc(e.d)}</div><div class="eo">${esc(e.o)}</div><div class="ew">${esc(e.w)}</div></div>`).join("");
+  el.addEventListener("click",ev=>{const it=ev.target.closest(".edu-item");if(!it)return;const e=EDU[+it.dataset.edu];
+    openModal(e.d, esc(e.o)+' &nbsp;·&nbsp; '+esc(e.w), '<ul>'+e.det.map(x=>`<li>${esc(x)}</li>`).join('')+'</ul>');});
+  document.getElementById("certList").innerHTML=CERTS.map(c=>`<div class="cert"><span>${esc(c[0])}</span><span class="cy">${esc(c[1])}</span></div>`).join("");
+  document.getElementById("affilList").innerHTML=AFFIL.map(a=>`<span class="achip">${esc(a)}</span>`).join("");
+}
 function renderTalks(){
   document.getElementById("talklist").innerHTML=TALKS.map(t=>`
     <div class="talk"><span class="yr">${esc(t.y)}</span><span><span class="tt">${esc(t.t)}</span>${t.up?'<span class="up">upcoming</span>':''}<br><span class="vn">${esc(t.v)}</span></span></div>`).join("");
   document.getElementById("awardlist").innerHTML=AWARDS.map(a=>`<span class="award" data-tip="${a[2].replace(/"/g,'&quot;')}"><b>${esc(a[0])}</b> · ${esc(a[1])}</span>`).join("");
 }
-renderSkills();renderRoles();renderProjects();renderTimeline();renderTalks();
+renderSkills();renderRoles();renderProjects();renderTimeline();renderCredentials();renderTalks();
 document.getElementById("yr").textContent=new Date().getFullYear();
+
+/* ===================== detail modal ===================== */
+const modal=document.getElementById("modal"),modalTitle=document.getElementById("modalTitle"),modalBody=document.getElementById("modalBody");
+function openModal(title,sub,bodyHTML){modalTitle.textContent=title;modalBody.innerHTML=`<h3>${esc(title)}</h3><div class="msub">${sub}</div>`+bodyHTML;modal.classList.add("open");}
+function closeModal(){modal.classList.remove("open");}
+document.getElementById("modalX").addEventListener("click",closeModal);
+modal.addEventListener("click",e=>{if(e.target===modal)closeModal();});
+addEventListener("keydown",e=>{if(e.key==="Escape")closeModal();});
+
+/* ===================== "Hire Me" rain ===================== */
+const rainCv=document.getElementById("rain"),rcx=rainCv.getContext("2d");
+let rainRAF,rainEnd=0,drops=[];
+function hireRain(){
+  rainCv.classList.add("on"); rainCv.width=innerWidth; rainCv.height=innerHeight;
+  const N=reduced?16:42, acc=cssvar("--accent"), pr=cssvar("--prompt"), fam=cssvar("--sans").split(",")[0].replace(/'/g,"")+", sans-serif";
+  drops=Array.from({length:N},()=>({x:Math.random()*innerWidth,y:-Math.random()*innerHeight,vy:2+Math.random()*4.5,rot:(Math.random()-.5)*.6,vr:(Math.random()-.5)*.05,size:15+Math.random()*22,c:Math.random()<.5?acc:pr}));
+  rainEnd=performance.now()+(reduced?1600:5200);
+  cancelAnimationFrame(rainRAF);
+  (function draw(now){
+    rcx.clearRect(0,0,rainCv.width,rainCv.height);
+    rcx.globalAlpha=now>rainEnd-800?Math.max(0,(rainEnd-now)/800):1;
+    drops.forEach(d=>{d.y+=d.vy; d.rot+=d.vr; if(d.y>innerHeight+40){d.y=-40;d.x=Math.random()*innerWidth;}
+      rcx.save(); rcx.translate(d.x,d.y); rcx.rotate(d.rot);
+      rcx.font=`700 ${d.size}px ${fam}`; rcx.fillStyle=d.c; rcx.textAlign="center";
+      rcx.fillText("Hire Me",0,0); rcx.restore();});
+    if(now<rainEnd)rainRAF=requestAnimationFrame(draw);
+    else{rcx.clearRect(0,0,rainCv.width,rainCv.height); rainCv.classList.remove("on");}
+  })(performance.now());
+}
 
 /* ===================== tooltip engine ===================== */
 const tip=document.getElementById("tip"); let tipEl=null;
@@ -606,12 +777,11 @@ const history=[];let hi=-1;
 function print(html,cls){const d=document.createElement("div");d.className="ln"+(cls?" "+cls:"");d.innerHTML=html;out.appendChild(d);return d;}
 function echoCmd(c){print(`<span class="prompt">brandon@stonesifer ~ $</span> <span class="cmd">${esc(c)}</span>`);}
 function jump(id){const el=document.getElementById(id);if(el)setTimeout(()=>el.scrollIntoView({behavior:reduced?"auto":"smooth",block:"start"}),240);}
-const NEO=`   ██████╗ ███████╗
-   ██╔══██╗██╔════╝
-   ██████╔╝███████╗
-   ██╔══██╗╚════██║
-   ██████╔╝███████║
-   ╚═════╝ ╚══════╝`;
+const _B=["██████╗ ","██╔══██╗","██████╔╝","██╔══██╗","██████╔╝","╚═════╝ "];
+const _L=["██╗     ","██║     ","██║     ","██║     ","███████╗","╚══════╝"];
+const _S=["███████╗","██╔════╝","███████╗","╚════██║","███████║","╚══════╝"];
+const _D=["   ","   ","   ","   ","██╗","╚═╝"];
+const NEO=[0,1,2,3,4,5].map(i=>_B[i]+" "+_D[i]+" "+_L[i]+" "+_D[i]+" "+_S[i]).join("\n");
 function neofetch(){return `<div class="neo"><pre>${NEO}</pre><div class="info">
 <div><b>name</b>  Brandon Stonesifer</div>
 <div><b>role</b>  ERA Manager · Data Scientist · AI Developer</div>
@@ -648,12 +818,12 @@ github   <a href="${GITHUB}" target="_blank" rel="noopener">github.com/Stone0012
   crt(){document.getElementById("crtBtn").click();return '<span class="ok">✔ retro mode toggled</span>';},
   matrix(){startMatrix();return '<span class="ok">entering the matrix… (press Esc to exit)</span>';},
   clear(){out.innerHTML="";return null;},
-  "sudo hire-brandon"(){return `<span class="ok">[sudo] authenticating... ✔ access granted</span>
+  "sudo hire-brandon"(){hireRain();return `<span class="ok">[sudo] authenticating... ✔ access granted</span>
 <span class="accent">Excellent choice.</span> Routing to the hiring pipeline →
   ✔ research administration expertise
   ✔ ships real AI / ML systems
   ✔ leads under pressure (see: Hurricane Helene)
-Run <span class="accent">contact</span> to start the conversation.`;},
+Run <span class="accent">contact</span> to start the conversation.  <span class="muted">(look up ☔)</span>`;},
   coffee(){return "☕ brewing... <span class='muted'>ERROR 418: I'm a teapot. But the code still compiles.</span>";},
 };
 const ALIASES={"?":"help",man:"help",info:"about",work:"experience",exp:"experience",proj:"projects",edu:"education",email:"contact",cls:"clear",resume:"contact",hire:"sudo hire-brandon",fetch:"neofetch",whoami:"whoami"};
@@ -710,6 +880,7 @@ const pal=document.getElementById("palette"),palInput=document.getElementById("p
 const PAL_ITEMS=[
   {k:"→",l:"Go to About",act:()=>jump("about")},{k:"→",l:"Go to Skills",act:()=>jump("skills")},
   {k:"→",l:"Go to Projects",act:()=>jump("projects")},{k:"→",l:"Go to Experience",act:()=>jump("experience")},
+  {k:"→",l:"Go to Credentials",act:()=>jump("credentials")},
   {k:"→",l:"Go to Talks",act:()=>jump("talks")},{k:"→",l:"Go to Contact",act:()=>jump("contact")},
   {k:"◆",l:"Skills as: Research Administrator",d:"role",act:()=>{jump("skills");selectRole("ra");}},
   {k:"◆",l:"Skills as: Data Scientist",d:"role",act:()=>{jump("skills");selectRole("ds");}},
