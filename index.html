@@ -1,4 +1,28 @@
-<title>StonesiferOS</title>
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>StonesiferOS — Brandon Stonesifer</title>
+<meta name="description" content="Brandon Stonesifer's interactive résumé, built like a tiny operating system — a working terminal, a role-based skills radar, and clickable project & experience details. Research administration, data science, and AI.">
+<link rel="canonical" href="https://stone0012.github.io/">
+<!-- Open Graph (LinkedIn / Facebook) -->
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="StonesiferOS">
+<meta property="og:url" content="https://stone0012.github.io/">
+<meta property="og:title" content="Brandon Stonesifer — Interactive Résumé">
+<meta property="og:description" content="Brandon Stonesifer's interactive résumé, built like a tiny operating system — a working terminal, a role-based skills radar, and clickable project & experience details. Research administration, data science, and AI.">
+<meta property="og:image" content="https://stone0012.github.io/og-preview.png">
+<meta property="og:image:secure_url" content="https://stone0012.github.io/og-preview.png">
+<meta property="og:image:type" content="image/png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="StonesiferOS — Brandon Stonesifer, interactive résumé">
+<!-- Twitter/X -->
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Brandon Stonesifer — Interactive Résumé">
+<meta name="twitter:description" content="Brandon Stonesifer's interactive résumé, built like a tiny operating system — a working terminal, a role-based skills radar, and clickable project & experience details. Research administration, data science, and AI.">
+<meta name="twitter:image" content="https://stone0012.github.io/og-preview.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,400;0,500;0,700;1,400&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
@@ -263,7 +287,8 @@
     body.js .reveal{opacity:1; transform:none}
   }
 </style>
-
+</head>
+<body>
 <script>/* set dark as default before paint (unless a saved choice exists) */
 try{document.documentElement.setAttribute('data-theme',localStorage.getItem('bs_theme')||'dark');}
 catch(e){document.documentElement.setAttribute('data-theme','dark');}</script>
@@ -935,3 +960,6 @@ document.getElementById("emailBtn").addEventListener("click",async e=>{const b=e
 /* first paint of radar (empty→filled happens on scroll) */
 drawRadar(curVals);
 </script>
+
+</body>
+</html>
